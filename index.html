@@ -32,16 +32,17 @@
     .interlude{position:relative;min-height:370px;display:grid;place-items:center;text-align:center;padding:60px 22px;background:radial-gradient(ellipse at 50% 80%,rgba(192,126,73,.19),transparent 40%),linear-gradient(145deg,#263b38,#101918 65%,#0b1111);overflow:hidden}
     .interlude:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(175deg,transparent 0 27px,rgba(219,223,200,.035) 28px 29px);opacity:.5}.interlude blockquote{position:relative;max-width:760px;margin:0;font-weight:300;font-size:clamp(36px,5vw,70px);line-height:1.2}
     .interlude small{position:relative;display:block;margin-top:24px;color:var(--gold);font-size:11px;letter-spacing:.24em;text-transform:uppercase}
-    .story-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(35px,8vw,120px);align-items:center}.art{aspect-ratio:4/5;position:relative;overflow:hidden;border:1px solid var(--line);background:#243732}.art img{width:100%;height:100%;display:block;object-fit:cover;object-position:center}
+    .story-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(35px,8vw,120px);align-items:center}.art{max-width:500px;border:1px solid var(--line);background:#243732;box-shadow:0 28px 85px rgba(0,0,0,.32)}.art img{width:100%;height:auto;display:block}
     .art-caption{margin-top:15px;color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase}.story-grid h2{margin-bottom:30px}.story-grid .body-copy{margin-bottom:20px}
     .materials{border-top:1px solid var(--line)}.materials-header{display:flex;justify-content:space-between;gap:30px;align-items:end}.materials h2{margin-bottom:0}.coming{color:var(--muted);font-size:13px;max-width:350px;line-height:1.7}
-    .gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:45px}.gallery a{display:block;overflow:hidden;border:1px solid var(--line);background:#243732}.gallery img{display:block;width:100%;aspect-ratio:3/2;object-fit:cover;transition:transform .35s}.gallery a:hover img,.gallery a:focus-visible img{transform:scale(1.035)}.gallery figcaption{margin-top:10px;color:var(--muted);font-size:12px;letter-spacing:.12em;text-transform:uppercase}.gallery figure{margin:0}
-    .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:45px}.card{min-height:230px;border:1px solid var(--line);display:flex;flex-direction:column;justify-content:space-between;padding:25px;background:linear-gradient(145deg,rgba(100,127,111,.12),transparent)}.card-number{color:var(--gold);font-size:35px}.card h3{font-weight:500;font-size:37px;margin-bottom:8px}.card p{margin:0;color:var(--muted);font-size:14px;font-weight:300;line-height:1.6}
+    .gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin-top:45px}.gallery figure{margin:0}.gallery a{display:block;position:relative;overflow:hidden;border:1px solid var(--line);background:#243732;box-shadow:0 20px 50px rgba(0,0,0,.18);transition:border-color .3s,box-shadow .3s}.gallery a:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(11,20,18,.04) 35%,rgba(11,20,18,.5));transition:background .3s}.gallery img{display:block;width:100%;aspect-ratio:3/2;object-fit:cover;filter:saturate(.83) contrast(1.04);transition:transform .4s,filter .4s}.gallery a:hover,.gallery a:focus-visible{border-color:var(--gold);box-shadow:0 22px 65px rgba(111,139,113,.24)}.gallery a:hover img,.gallery a:focus-visible img{transform:scale(1.045);filter:saturate(1.03) contrast(1.02)}.gallery a:focus-visible{outline:2px solid var(--gold);outline-offset:4px}.gallery .view-photo{position:absolute;z-index:1;right:18px;bottom:16px;color:#fff;font-size:12px;letter-spacing:.12em;text-transform:uppercase}.gallery figcaption{margin-top:12px;color:var(--muted);font-size:13px;letter-spacing:.12em;text-transform:uppercase}
+    .lightbox{width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:clamp(15px,4vw,45px);border:0;background:rgba(7,13,12,.96);color:var(--ink);overflow:hidden}.lightbox::backdrop{background:rgba(0,0,0,.88)}.lightbox[open]{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr) auto;align-items:center;gap:12px}.lightbox img{grid-column:2;grid-row:1;display:block;max-width:100%;max-height:calc(100dvh - 130px);height:auto;width:auto;margin:auto;object-fit:contain;box-shadow:0 24px 90px rgba(0,0,0,.5)}.lightbox .lightbox-caption{grid-column:1/-1;grid-row:2;text-align:center;color:var(--ink);font-size:14px;letter-spacing:.12em;text-transform:uppercase}.lightbox button{border:1px solid var(--line);background:rgba(25,37,33,.75);color:var(--ink);cursor:pointer}.lightbox button:hover,.lightbox button:focus-visible{border-color:var(--gold);color:var(--gold)}.lightbox .close{position:absolute;right:clamp(15px,4vw,45px);top:18px;width:44px;height:44px;font-size:28px;line-height:1}.lightbox .previous,.lightbox .next{width:44px;height:58px;font-size:32px;line-height:1}.lightbox .previous{grid-column:1;grid-row:1}.lightbox .next{grid-column:3;grid-row:1}
+    .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:65px}.card{min-height:190px;border:1px solid var(--line);display:flex;align-items:flex-end;padding:25px;background:linear-gradient(145deg,rgba(100,127,111,.12),transparent)}.card h3{font-weight:500;font-size:37px;margin-bottom:8px}.card p{margin:0;color:var(--muted);font-size:14px;font-weight:300;line-height:1.6}
     .premiere{text-align:center;background:#202b28;padding:90px 22px}.premiere h2{margin:0 0 15px}.premiere p{color:var(--muted);font-size:14px;line-height:1.7}.premiere .date{color:var(--gold);font-size:12px;font-weight:700;letter-spacing:.25em;text-transform:uppercase}
     footer{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:35px clamp(22px,5vw,84px);font-size:11px;color:var(--muted)}footer a{text-decoration:underline;text-underline-offset:4px}
     @media(max-width:760px){.header{padding:22px}.brand{font-size:22px}.nav{gap:16px;font-size:10px}.nav a:nth-child(2){display:none}.hero{min-height:720px;min-height:100svh}.hero-inner{padding:140px 26px 110px}.hero h1{font-size:clamp(76px,16vw,125px)}.hero-footer span:last-child{display:none}.intro,.story-grid{grid-template-columns:1fr}.story-grid .art{order:2;max-width:500px}.materials-header{display:block}.gallery{gap:12px}.cards{grid-template-columns:1fr}.card{min-height:210px}.section{padding:80px 0}footer{flex-direction:column;align-items:flex-start}}
-    @media(max-width:480px){.gallery{grid-template-columns:1fr}.hero h1{font-size:clamp(70px,17vw,92px)}}
-    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.button{transition:none}}
+    @media(max-width:480px){.gallery{grid-template-columns:1fr}.hero h1{font-size:clamp(70px,17vw,92px)}.lightbox{padding:12px}.lightbox img{max-height:calc(100dvh - 110px)}.lightbox .previous,.lightbox .next{width:34px;height:48px}.lightbox .close{right:12px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.button,.gallery a,.gallery img,.gallery a:after{transition:none}}
   </style>
 </head>
 <body>
@@ -55,12 +56,68 @@
       <div class="hero-inner"><p class="eyebrow">Film inspirowany legendą</p><h1 id="tytul">Goła<br>Zośka <span>1812</span></h1><p class="hero-copy">Wśród lasów i jezior dawna opowieść powraca z mroku.</p><div class="actions"><a class="button" href="#film">Poznaj film</a><a class="button secondary" href="#premiera">Premiera</a></div></div>
       <div class="hero-footer"><span>Augustów · Polska</span><span>Przewiń, aby odkryć historię ↓</span></div>
     </section>
-    <section class="section" id="film"><div class="wrap intro"><div><p class="section-label">01 / Film</p><h2>Legenda,<br>która nie milknie.</h2></div><div><p class="lead">Jezioro. Las. Ognisko. Noc, po której nic nie pozostaje takie samo.</p><p class="body-copy">„Goła Zośka 1812” to filmowa opowieść inspirowana lokalną legendą. W jej świecie historia spotyka pamięć miejsca, a cisza augustowskich lasów skrywa więcej, niż można dostrzec za dnia.</p></div></div></section>
+    <section class="section" id="film"><div class="wrap intro"><div><p class="section-label">Film</p><h2>Legenda,<br>która nie milknie.</h2></div><div><p class="lead">Jezioro. Las. Ognisko. Noc, po której nic nie pozostaje takie samo.</p><p class="body-copy">„Goła Zośka 1812” to filmowa opowieść inspirowana lokalną legendą. W jej świecie historia spotyka pamięć miejsca, a cisza augustowskich lasów skrywa więcej, niż można dostrzec za dnia.</p></div></div></section>
     <div class="interlude" aria-label="Motyw filmu"><div><blockquote>Nie każda historia<br>kończy się o świcie.</blockquote><small>Goła Zośka 1812</small></div></div>
-    <section class="section" id="legenda"><div class="wrap story-grid"><div class="art"><img src="images/E47A9885.jpg" alt="Postać w lesie wśród paproci" width="1600" height="1067" loading="lazy"></div><div><p class="section-label">02 / Miejsce i pamięć</p><h2>Między prawdą<br>a legendą.</h2><p class="body-copy">Rok 1812 jest tłem tej opowieści. Jej sercem pozostaje Zośka oraz legenda związana z augustowskim krajobrazem.</p><p class="body-copy">Odkryj pierwsze zdjęcia, które przybliżają atmosferę filmu.</p><p class="art-caption">Kadry ze świata Gołej Zośki</p></div></div></section>
-    <section class="section materials" id="materialy"><div class="wrap"><div class="materials-header"><div><p class="section-label">03 / Odkrywaj film</p><h2>Fotosy.</h2></div><p class="coming">Pierwsze obrazy ze świata „Gołej Zośki 1812”. Kliknij zdjęcie, aby obejrzeć je w pełnym rozmiarze.</p></div><div class="gallery"><figure><a href="images/E47A0092.jpg" target="_blank" rel="noopener" aria-label="Otwórz pierwsze zdjęcie w pełnym rozmiarze"><img src="images/E47A0092.jpg" alt="Zbliżenie postaci w leśnej scenerii" width="1600" height="1067" loading="lazy"></a><figcaption>01 / Las</figcaption></figure><figure><a href="images/E47A9850.jpg" target="_blank" rel="noopener" aria-label="Otwórz drugie zdjęcie w pełnym rozmiarze"><img src="images/E47A9850.jpg" alt="Postać wśród paproci w lesie" width="1600" height="1067" loading="lazy"></a><figcaption>02 / Paprocie</figcaption></figure><figure><a href="images/E47A9885.jpg" target="_blank" rel="noopener" aria-label="Otwórz trzecie zdjęcie w pełnym rozmiarze"><img src="images/E47A9885.jpg" alt="Postać otoczona zielenią lasu" width="1600" height="1067" loading="lazy"></a><figcaption>03 / Leśna opowieść</figcaption></figure><figure><a href="images/E47A9918.jpg" target="_blank" rel="noopener" aria-label="Otwórz czwarte zdjęcie w pełnym rozmiarze"><img src="images/E47A9918.jpg" alt="Postać widziana od tyłu na tle lasu" width="1600" height="1031" loading="lazy"></a><figcaption>04 / W głąb lasu</figcaption></figure></div><div class="cards"><article class="card"><span class="card-number">05</span><div><h3>Teaser</h3><p>Pierwsze spojrzenie na film — wkrótce.</p></div></article><article class="card"><span class="card-number">06</span><div><h3>Twórcy</h3><p>Obsada i ekipa filmu — wkrótce.</p></div></article></div></div></section>
+    <section class="section" id="legenda">
+      <div class="wrap story-grid">
+        <div class="art"><img src="images/plakat-gola-zoska.jpg" alt="Plakat filmu Goła Zośka 1812 z Zuzanną Wasilczyk w lesie" width="1134" height="1701" loading="lazy"></div>
+        <div><p class="section-label">Miejsce i pamięć</p><h2>Między prawdą<br>a legendą.</h2><p class="body-copy">Rok 1812 jest tłem tej opowieści. Jej sercem pozostaje Zośka oraz legenda związana z augustowskim krajobrazem.</p><p class="body-copy">Odkryj pierwsze zdjęcia, które przybliżają atmosferę filmu.</p><p class="art-caption">Oficjalny plakat filmu</p></div>
+      </div>
+    </section>
+    <section class="section materials" id="materialy">
+      <div class="wrap">
+        <div class="materials-header"><div><p class="section-label">Odkrywaj film</p><h2>Fotosy.</h2></div><p class="coming">Pierwsze obrazy ze świata „Gołej Zośki 1812”. Kliknij miniaturę, aby obejrzeć zdjęcie w powiększeniu.</p></div>
+        <div class="gallery">
+          <figure><a href="images/E47A0092.jpg" data-photo target="_blank" rel="noopener" aria-label="Powiększ fotos: Portret w lesie"><img src="images/thumb-E47A0092.jpg" alt="Portret postaci w leśnej scenerii" width="800" height="534" loading="lazy"><span class="view-photo" aria-hidden="true">Powiększ ↗</span></a><figcaption>Portret w lesie</figcaption></figure>
+          <figure><a href="images/E47A9850.jpg" data-photo target="_blank" rel="noopener" aria-label="Powiększ fotos: Wśród paproci"><img src="images/thumb-E47A9850.jpg" alt="Postać wśród paproci w lesie" width="800" height="534" loading="lazy"><span class="view-photo" aria-hidden="true">Powiększ ↗</span></a><figcaption>Wśród paproci</figcaption></figure>
+          <figure><a href="images/E47A9885.jpg" data-photo target="_blank" rel="noopener" aria-label="Powiększ fotos: Leśna opowieść"><img src="images/thumb-E47A9885.jpg" alt="Postać otoczona zielenią lasu" width="800" height="534" loading="lazy"><span class="view-photo" aria-hidden="true">Powiększ ↗</span></a><figcaption>Leśna opowieść</figcaption></figure>
+          <figure><a href="images/E47A9918.jpg" data-photo target="_blank" rel="noopener" aria-label="Powiększ fotos: W głąb lasu"><img src="images/thumb-E47A9918.jpg" alt="Postać widziana od tyłu na tle lasu" width="800" height="516" loading="lazy"><span class="view-photo" aria-hidden="true">Powiększ ↗</span></a><figcaption>W głąb lasu</figcaption></figure>
+        </div>
+        <div class="cards"><article class="card"><div><h3>Teaser</h3><p>Pierwsze spojrzenie na film — wkrótce.</p></div></article><article class="card"><div><h3>Twórcy</h3><p>Obsada i ekipa filmu — wkrótce.</p></div></article></div>
+      </div>
+    </section>
     <section class="premiere" id="premiera"><p class="section-label">Spotkamy się na premierze</p><h2>Listopad 2026</h2><p>Szczegóły pokazu i dalsze informacje podamy wkrótce.</p><span class="date">Goła Zośka 1812</span></section>
   </main>
+  <dialog class="lightbox" id="lightbox" aria-label="Powiększone zdjęcie">
+    <button class="close" type="button" aria-label="Zamknij zdjęcie">×</button>
+    <button class="previous" type="button" aria-label="Poprzednie zdjęcie">‹</button>
+    <img id="lightbox-image" alt="">
+    <button class="next" type="button" aria-label="Następne zdjęcie">›</button>
+    <p class="lightbox-caption" id="lightbox-caption"></p>
+  </dialog>
   <footer><span>© 2026 Goła Zośka 1812</span><a href="#poczatek">Wróć na początek ↑</a></footer>
+  <script>
+    const photos = [...document.querySelectorAll('[data-photo]')];
+    const lightbox = document.getElementById('lightbox');
+    const largeImage = document.getElementById('lightbox-image');
+    const caption = document.getElementById('lightbox-caption');
+    let currentPhoto = 0;
+    let trigger = null;
+    function showPhoto(index) {
+      currentPhoto = (index + photos.length) % photos.length;
+      const link = photos[currentPhoto];
+      largeImage.src = link.href;
+      largeImage.alt = link.querySelector('img').alt;
+      caption.textContent = link.closest('figure').querySelector('figcaption').textContent;
+    }
+    photos.forEach((link, index) => link.addEventListener('click', event => {
+      if (typeof lightbox.showModal !== 'function') return;
+      event.preventDefault();
+      trigger = link;
+      showPhoto(index);
+      lightbox.showModal();
+      lightbox.querySelector('.close').focus();
+    }));
+    lightbox.querySelector('.close').addEventListener('click', () => lightbox.close());
+    lightbox.querySelector('.previous').addEventListener('click', () => showPhoto(currentPhoto - 1));
+    lightbox.querySelector('.next').addEventListener('click', () => showPhoto(currentPhoto + 1));
+    lightbox.addEventListener('click', event => { if (event.target === lightbox) lightbox.close(); });
+    lightbox.addEventListener('close', () => { largeImage.removeAttribute('src'); if (trigger) trigger.focus(); });
+    document.addEventListener('keydown', event => {
+      if (!lightbox.open) return;
+      if (event.key === 'ArrowLeft') showPhoto(currentPhoto - 1);
+      if (event.key === 'ArrowRight') showPhoto(currentPhoto + 1);
+    });
+  </script>
 </body>
 </html>
