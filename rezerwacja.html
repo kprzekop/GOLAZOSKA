@@ -1,0 +1,30 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>Twoja rezerwacja – Goła Zośka 1812</title>
+<style>:root{color-scheme:dark}body{background:#101716;color:#e8e4d9;font:20px/1.5 Arial,sans-serif}main{max-width:620px;margin:8vh auto;padding:32px;border:1px solid #c8a77b}a{color:#c8a77b}button{padding:14px 20px;margin:10px 12px 10px 0;background:#c8a77b;color:#101716;border:0;cursor:pointer;font-size:17px}button:disabled{opacity:.5}</style></head><body><main><a href="/">← Strona filmu</a><h1>Twoja rezerwacja</h1><p id="state">Sprawdzam…</p><div id="actions"></div></main>
+<script>
+const token=new URLSearchParams(location.search).get('token'),state=document.getElementById('state'),actions=document.getElementById('actions');
+const labels={verification:'Potwierdź adres e-mail, aby utrzymać rezerwację.',reserved:'Adres sprawdzony. Przed premierą potwierdź jeszcze swój udział.',confirmed:'Udział potwierdzony. Do zobaczenia na premierze!',waiting:'Jesteś na liście rezerwowej. Jeśli zwolni się miejsce, wyślemy propozycję.',offered:'Zwolniło się miejsce. Potwierdź, że przyjmujesz propozycję.',cancelled:'Rezerwacja została anulowana.',expired:'Termin potwierdzenia minął. Rezerwacja wygasła.'};
+async function load(){
+  if(!token){state.textContent='Nieprawidłowy link.';return}
+  try{
+    const r=await fetch('/api/booking?token='+encodeURIComponent(token)),data=await r.json();
+    if(!r.ok)throw Error('Nie znaleziono rezerwacji.');
+    state.textContent=labels[data.status]||'Sprawdź status rezerwacji.';
+    actions.replaceChildren();
+    if(['verification','reserved','offered'].includes(data.status)) button('Potwierdzam', 'confirm');
+    if(!['cancelled','expired'].includes(data.status)) button('Anuluję rezerwację','cancel');
+  }catch(e){state.textContent=e.message}
+}
+function button(label,action){
+  const b=document.createElement('button');b.type='button';b.textContent=label;
+  b.onclick=async()=>{
+    if(action==='cancel'&&!confirm('Na pewno anulować rezerwację?'))return;
+    actions.querySelectorAll('button').forEach(x=>x.disabled=true);
+    try{
+      const r=await fetch('/api/booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action})});
+      const data=await r.json();if(!r.ok)throw Error('Ta czynność jest już niedostępna. Odśwież stronę.');
+      await load();
+    }catch(e){state.textContent=e.message;actions.querySelectorAll('button').forEach(x=>x.disabled=false)}
+  };actions.append(b);
+}
+load();
+</script></body></html>

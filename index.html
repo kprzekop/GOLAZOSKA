@@ -96,6 +96,7 @@
     h1,h2,h3,p{margin-top:0}.hero h1{font-weight:500;font-size:clamp(78px,12vw,190px);line-height:1.18;letter-spacing:.02em;margin:38px 0 35px;max-width:950px;text-transform:uppercase}.hero h1 span{display:block;color:var(--gold);font-size:.47em;letter-spacing:.17em;line-height:1.3}
     .hero-copy{max-width:500px;font-size:clamp(23px,2.6vw,35px);font-weight:300;line-height:1.35;color:#e0d9c9}.actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:42px}
     .button{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 25px;border:1px solid var(--gold);color:#171b18;background:var(--gold);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;transition:background .2s,color .2s}.button:hover,.button:focus-visible{background:#ead3ad}.button.secondary{background:transparent;color:var(--ink);border-color:rgba(232,228,217,.5)}.button.secondary:hover,.button.secondary:focus-visible{background:var(--ink);color:#101716}
+    .button[hidden]{display:none}
     .hero-footer{position:absolute;bottom:30px;left:clamp(22px,5vw,84px);right:clamp(22px,5vw,84px);display:flex;justify-content:space-between;gap:20px;color:#c5c8bf;font-size:10px;letter-spacing:.22em;text-transform:uppercase}
     .wrap{width:min(1180px,calc(100% - 44px));margin:auto}.section{padding:clamp(75px,10vw,150px) 0}.section-label{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;margin-bottom:26px}
     h2{font-weight:500;font-size:clamp(48px,6.4vw,96px);line-height:1.12;letter-spacing:-.025em}
@@ -150,7 +151,7 @@
         <div class="cards"><a class="card teaser-card" href="https://polaugust-my.sharepoint.com/:v:/g/personal/admin_polaugust_onmicrosoft_com/IQDYnq0gJA4tSZ6W5-RTKJGvAYXV84HxDBdEcK3g5WpeyS8?e=UJmCr1" target="_blank" rel="noopener noreferrer" aria-label="Obejrzyj teaser filmu Goła Zośka 1812 w nowej karcie"><div><h3>Teaser</h3><p>Pierwsze spojrzenie na film „Goła Zośka 1812”.</p><span class="watch">Obejrzyj teaser ↗</span></div><span class="play" aria-hidden="true">▶</span></a><article class="card credits-card"><div><h3>Obsada i twórcy</h3><p class="credit-label">W roli tytułowej</p><p class="credit-name">Zuzanna Wasilczyk</p><p class="credit-label">Występują</p><ul class="cast-list"><li>Kuba Karpiński</li><li>Grzegorz Stankiewicz</li><li>Adam Gusiatin</li><li>Anetta Kotfis</li></ul><p class="credit-label">Scenariusz i reżyseria</p><p class="credit-name">Krzysztof Przekop</p></div></article></div>
       </div>
     </section>
-    <section class="premiere" id="premiera"><p class="section-label">Spotkamy się na premierze</p><h2>21 listopada 2026</h2><p>Wstęp bezpłatny. Udział w premierowym pokazie wymaga wcześniejszej rezerwacji.</p><p>Godzinę, miejsce seansu i sposób rezerwacji podamy wkrótce.</p><span class="date">Goła Zośka 1812</span></section>
+    <section class="premiere" id="premiera"><p class="section-label">Spotkamy się na premierze</p><h2>21 listopada 2026</h2><p>Wstęp bezpłatny. Udział w premierowym pokazie wymaga wcześniejszej rezerwacji.</p><p>Godzinę i miejsce seansu podamy wkrótce.</p><p>Przed pokazem poprosimy o potwierdzenie udziału. Jeśli rezerwacja nie zostanie potwierdzona w podanym terminie, zwolnione miejsce zaproponujemy osobom z listy rezerwowej.</p><p>Dodatkowe wejścia zależą od decyzji organizatora i możliwości sali.</p><a class="button" id="reservation-link" href="rezerwacje.html" hidden>Rezerwuj wejściówki</a><span class="date">Goła Zośka 1812</span></section>
   </main>
   <dialog class="lightbox" id="lightbox" aria-label="Powiększone zdjęcie">
     <button class="close" type="button" aria-label="Zamknij zdjęcie">×</button>
@@ -161,6 +162,9 @@
   </dialog>
   <footer><span>© 2026 Goła Zośka 1812</span><a href="#poczatek">Wróć na początek ↑</a></footer>
   <script>
+    fetch('/api/status').then(response => response.json()).then(data => {
+      if(data.open) document.getElementById('reservation-link').hidden = false;
+    }).catch(() => {});
     const photos = [...document.querySelectorAll('[data-photo]')];
     const lightbox = document.getElementById('lightbox');
     const largeImage = document.getElementById('lightbox-image');
@@ -195,3 +199,4 @@
   </script>
 </body>
 </html>
+
