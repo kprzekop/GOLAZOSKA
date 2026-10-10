@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Rezerwacja – Goła Zośka 1812</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#101716;color:#e8e4d9;font:20px/1.55 Oswald,sans-serif}
+main{width:min(660px,calc(100% - 38px));margin:7vh auto;padding:clamp(24px,5vw,50px);border:1px solid #615746;background:#202b28}
+a{color:#c8a77b}h1{font-size:clamp(38px,7vw,64px);line-height:1.15;font-weight:500}h2{font-size:29px}
+.eyebrow{color:#c8a77b;text-transform:uppercase;font-size:14px;letter-spacing:.2em}.muted{color:#c4c4b9;font-size:17px}
+label{display:block;margin:22px 0 6px}input,select{display:block;width:100%;padding:13px;color:#101716;font:20px Oswald,sans-serif;border:1px solid #b7a783;background:#eee9de;border-radius:0}
+button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;background:#c8a77b;border:0;font:600 17px Oswald,sans-serif}button:disabled{opacity:.55;cursor:not-allowed}
+.hidden{display:none}.hp{position:absolute;left:-9999px}#message{margin-top:20px}#message:not(:empty){padding:14px;border:1px solid #c8a77b}
+</style></head><body><main>
+<a href="/">← Strona filmu</a><p class="eyebrow">Premiera · 21 listopada 2026</p><h1>Rezerwacja bezpłatnych wejściówek</h1>
+<p>Rezerwacja jest bezpłatna, a miejsca nie mają numerów. Godzinę i miejsce pokazu podamy osobno.</p>
+<p class="muted">Najpierw potwierdzisz adres e-mail. Przed premierą poprosimy o ponowne potwierdzenie udziału do 17 listopada. Niepotwierdzone miejsca zaproponujemy osobom z listy rezerwowej. Dodatkowe wejścia zależą od decyzji organizatora i warunków sali.</p>
+<p id="availability" aria-live="polite">Sprawdzam możliwość zapisów…</p>
+<form id="form" class="hidden">
+  <label for="name">Imię i nazwisko osoby rezerwującej</label><input id="name" name="name" maxlength="120" minlength="2" required autocomplete="name">
+  <label for="email">Adres e-mail</label><input id="email" name="email" type="email" maxlength="254" required autocomplete="email">
+  <label for="seats">Liczba wejściówek</label><select id="seats" name="seats"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+  <label class="hp" for="website">Pozostaw puste</label><input class="hp" id="website" name="website" tabindex="-1" autocomplete="off">
+  <div id="challenge"></div>
+  <p class="muted">Dane wykorzystamy do obsługi rezerwacji, wiadomości o premierze i listy rezerwowej. Możesz anulować zgłoszenie przez link w wiadomości e-mail.</p>
+  <button type="submit">Wyślij zgłoszenie</button>
+</form><p id="message" role="status" aria-live="polite"></p>
+</main><script>
+const form=document.getElementById('form'),message=document.getElementById('message'),availability=document.getElementById('availability');
+fetch('/api/status').then(r=>r.json()).then(data=>{
+  if(data.open){
+    form.classList.remove('hidden');availability.textContent=data.waitlist?'Pula miejsc jest obecnie zajęta. Możesz zapisać się na listę rezerwową.':'Przyjmujemy zgłoszenia.';
+    const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    script.onload=()=>window.turnstile.render('#challenge',{sitekey:data.siteKey,theme:'dark'});
+    document.head.append(script);
+  }
+  else availability.textContent='Zapisy jeszcze nie ruszyły. Informację o ich uruchomieniu podamy na stronie filmu.';
+}).catch(()=>{availability.textContent='Nie można teraz sprawdzić zapisów. Spróbuj później.'});
+form.addEventListener('submit',async e=>{
+  e.preventDefault();const button=form.querySelector('button');button.disabled=true;message.textContent='Wysyłam zgłoszenie…';
+  try {
+    const r=await fetch('/api/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(form)))});
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error==='DUPLICATE'?'Ten adres ma już aktywne zgłoszenie. Sprawdź swoją skrzynkę.':'Zgłoszenia nie udało się przyjąć. Spróbuj później.');
+    form.classList.add('hidden');
+    message.textContent=data.status==='waiting'?'Jesteś na liście rezerwowej. Sprawdź wiadomość e-mail; odezwiemy się, jeśli miejsce się zwolni.':'Zgłoszenie przyjęte. Sprawdź wiadomość e-mail i potwierdź adres w ciągu 24 godzin.';
+  } catch(err) {message.textContent=err.message;button.disabled=false;window.turnstile?.reset();}
+});
+</script></body></html>
