@@ -1,4 +1,4 @@
-import {json,sql,isAdmin} from './_shared.js';
+import {json,sql,isAdmin} from '../lib/shared.js';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export default async function handler(req,res) {
   if(!isAdmin(req)) return json(res,401,{error:'UNAUTHORIZED'});

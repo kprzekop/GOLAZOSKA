@@ -1,4 +1,4 @@
-import {json,sql,sendMail,actionMail} from './_shared.js';
+import {json,sql,sendMail,actionMail} from '../lib/shared.js';
 export default async function handler(req,res) {
   if(req.method!=='POST') return json(res,405,{error:'METHOD'});
   if(process.env.RESERVATIONS_OPEN!=='true') return json(res,503,{error:'CLOSED'});

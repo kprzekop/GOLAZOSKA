@@ -1,4 +1,4 @@
-import {json,sql,sendMail,confirmUrl,tokenValid,escapeHtml} from './_shared.js';
+import {json,sql,sendMail,confirmUrl,tokenValid,escapeHtml} from '../lib/shared.js';
 export default async function handler(req,res) {
   if(req.method!=='GET') return json(res,405,{error:'METHOD'});
   if(!tokenValid((req.headers.authorization||'').replace(/^Bearer /i,''),process.env.CRON_SECRET))

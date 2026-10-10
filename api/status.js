@@ -1,4 +1,4 @@
-import {json,sql} from './_shared.js';
+import {json,sql} from '../lib/shared.js';
 export default async function handler(req,res) {
   if(req.method!=='GET') return json(res,405,{error:'METHOD'});
   if(!process.env.DATABASE_URL || !process.env.RESEND_API_KEY ||

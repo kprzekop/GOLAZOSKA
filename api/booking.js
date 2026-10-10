@@ -1,4 +1,4 @@
-import {json,sql} from './_shared.js';
+import {json,sql} from '../lib/shared.js';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export default async function handler(req,res) {
   if(!['GET','POST'].includes(req.method)) return json(res,405,{error:'METHOD'});
