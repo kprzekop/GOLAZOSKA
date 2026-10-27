@@ -10,39 +10,90 @@ a{color:#c8a77b}h1{font-size:clamp(38px,7vw,64px);line-height:1.15;font-weight:5
 label{display:block;margin:22px 0 6px}input,select{display:block;width:100%;padding:13px;color:#101716;font:20px Oswald,sans-serif;border:1px solid #b7a783;background:#eee9de;border-radius:0}
 button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;background:#c8a77b;border:0;font:600 17px Oswald,sans-serif}button:disabled{opacity:.55;cursor:not-allowed}
 .hidden{display:none}.hp{position:absolute;left:-9999px}#message{margin-top:20px}#message:not(:empty){padding:14px;border:1px solid #c8a77b}
+
+.seatmap{overflow-x:auto;padding:12px 0}.screen{text-align:center;border-top:5px solid #c8a77b;padding:10px;margin:15px 0 24px}
+.row{display:flex;gap:5px;align-items:center;justify-content:center;min-width:550px;margin:7px 0}.row-label{width:52px;flex-shrink:0;font-size:15px}
+.seat{width:31px;height:34px;flex-shrink:0;margin:0;padding:0;font:15px Arial,sans-serif;border:1px solid #c8a77b;background:#244c3b;color:#fff}
+.seat[aria-pressed="true"]{background:#e8bd75;color:#101716;outline:2px solid white}.seat:disabled{background:#3c403d;border-color:#777;color:#b0b0a4;opacity:1}
+.seat.held{background:#4e4334}.seat.organizational{background:#363648}.legend{font:15px/1.7 Arial,sans-serif}.inline{display:flex;gap:10px;align-items:start;font-size:17px}.inline input{width:auto;margin-top:8px}
+#selected{font-size:17px}button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:3px}
 </style></head><body><main>
-<a href="/">← Strona filmu</a><p class="eyebrow">Premiera · 21 listopada 2026</p><h1>Rezerwacja bezpłatnych wejściówek</h1>
-<p>Rezerwacja jest bezpłatna, a miejsca nie mają numerów. Godzinę i miejsce pokazu podamy osobno.</p>
-<p class="muted">Najpierw potwierdzisz adres e-mail. Przed premierą poprosimy o ponowne potwierdzenie udziału do 17 listopada. Niepotwierdzone miejsca zaproponujemy osobom z listy rezerwowej. Dodatkowe wejścia zależą od decyzji organizatora i warunków sali.</p>
-<p id="availability" aria-live="polite">Sprawdzam możliwość zapisów…</p>
+<a href="/">← Strona filmu</a><p class="eyebrow">Premiera · 21 listopada 2026 · godz. 19:00</p>
+<h1>Zarezerwuj miejsce</h1>
+<p>Bezpłatny pokaz w sali widowiskowej MDK, Rynek Zygmunta Augusta 9. Wejście od ul. Kościelnej, II piętro.</p>
+<p class="muted">Wybierz od 1 do 4 miejsc. Rząd 1 jest najbliżej ekranu. Numery na planie rosną od lewej do prawej, patrząc w stronę ekranu.</p>
+<p class="muted">Potwierdź adres e-mail w ciągu 24 godzin. 14 listopada wyślemy prośbę o potwierdzenie udziału do <strong>18 listopada 2026, godz. 19:00</strong>. Bez potwierdzenia miejsca wrócą do puli. Dla zgłoszeń przed tym terminem jest to również ostateczny termin weryfikacji e-maila. Potwierdzenie e-maila od 14 listopada godz. 19:00 potwierdza także udział. Późniejsze rezerwacje wymagają potwierdzenia w ciągu 24 godzin, najpóźniej do początku pokazu.</p>
+<p id="availability" aria-live="polite">Sprawdzam dostępność…</p>
 <form id="form" class="hidden">
-  <label for="name">Imię i nazwisko osoby rezerwującej</label><input id="name" name="name" maxlength="120" minlength="2" required autocomplete="name">
-  <label for="email">Adres e-mail</label><input id="email" name="email" type="email" maxlength="254" required autocomplete="email">
-  <label for="seats">Liczba wejściówek</label><select id="seats" name="seats"><option>1</option><option>2</option><option>3</option><option>4</option></select>
-  <label class="hp" for="website">Pozostaw puste</label><input class="hp" id="website" name="website" tabindex="-1" autocomplete="off">
-  <div id="challenge"></div>
-  <p class="muted">Dane wykorzystamy do obsługi rezerwacji, wiadomości o premierze i listy rezerwowej. Możesz anulować zgłoszenie przez link w wiadomości e-mail.</p>
-  <button type="submit">Wyślij zgłoszenie</button>
+ <div class="screen">EKRAN</div><div id="seatmap" class="seatmap" role="group" aria-label="Plan sali"></div>
+ <p class="legend">Zielone: wolne · złote: Twój wybór · szare: zajęte · fioletowe: pula organizatora · brązowe: dostępne później.</p>
+ <p id="selected" aria-live="polite">Nie wybrano miejsc.</p><button id="reload" type="button">Odśwież plan</button>
+ <label class="inline"><input id="waiting" type="checkbox">Chcę zapisać się na listę rezerwową zamiast wybierać miejsca.</label>
+ <p class="muted">Lista rezerwowa nie gwarantuje wejścia. Po zwolnieniu miejsc wyślemy ofertę z przydzielonymi fotelami; możesz ją przyjąć lub anulować.</p>
+ <div id="waitCount" class="hidden"><label for="seats">Liczba miejsc na liście rezerwowej</label><select id="seats" name="seats"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+ <label for="name">Imię i nazwisko</label><input id="name" name="name" maxlength="120" minlength="2" required autocomplete="name">
+ <label for="email">Adres e-mail</label><input id="email" name="email" type="email" maxlength="254" required autocomplete="email">
+ <label for="phone">Numer telefonu</label><input id="phone" name="phone" type="tel" maxlength="25" required autocomplete="tel" placeholder="np. 600 123 456">
+ <label for="phoneRepeat">Powtórz numer telefonu</label><input id="phoneRepeat" name="phoneRepeat" type="tel" maxlength="25" required autocomplete="off">
+ <label class="hp" for="website">Pozostaw puste</label><input class="hp" id="website" name="website" tabindex="-1" autocomplete="off">
+ <div id="challenge"></div>
+ <p class="muted">Podanie danych jest potrzebne do obsługi rezerwacji i kontaktu w sprawie pokazu. Telefon nie jest weryfikowany SMS-em. Zgłoszenie można anulować przez link w e-mailu.</p>
+ <p class="muted">Przed wysłaniem zapoznaj się z <a href="/prywatnosc.html">informacją o przetwarzaniu danych</a>.</p>
+ <button id="submit" type="submit">Zarezerwuj i wyślij e-mail</button>
 </form><p id="message" role="status" aria-live="polite"></p>
 </main><script>
 const form=document.getElementById('form'),message=document.getElementById('message'),availability=document.getElementById('availability');
-fetch('/api/status').then(r=>r.json()).then(data=>{
-  if(data.open){
-    form.classList.remove('hidden');availability.textContent=data.waitlist?'Pula miejsc jest obecnie zajęta. Możesz zapisać się na listę rezerwową.':'Przyjmujemy zgłoszenia.';
-    const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-    script.onload=()=>window.turnstile.render('#challenge',{sitekey:data.siteKey,theme:'dark'});
-    document.head.append(script);
-  }
-  else availability.textContent='Zapisy jeszcze nie ruszyły. Informację o ich uruchomieniu podamy na stronie filmu.';
-}).catch(()=>{availability.textContent='Nie można teraz sprawdzić zapisów. Spróbuj później.'});
+const selected=new Set(),waiting=document.getElementById('waiting'),map=document.getElementById('seatmap');
+let seatData=[],widget;
+const normalize=v=>v.replace(/[\s()-]/g,'').replace(/^00/,'+');
+function render(){
+ map.replaceChildren();
+ for(let row=1;row<=7;row++){
+  const line=document.createElement('div');line.className='row';
+  const label=document.createElement('span');label.className='row-label';label.textContent='Rząd '+row;line.append(label);
+  for(const s of seatData.filter(s=>s.row===row)){
+   const b=document.createElement('button');b.type='button';b.className='seat '+s.status;b.textContent=s.number;
+   const labels={available:'wolne',taken:'zajęte',organizational:'pula organizatora',held:'dostępne później'};
+   b.setAttribute('aria-label','Rząd '+row+', miejsce '+s.number+', '+labels[s.status]);
+   b.disabled=s.status!=='available'||waiting.checked;b.setAttribute('aria-pressed',selected.has(s.id)?'true':'false');
+   b.onclick=()=>{
+    if(selected.has(s.id))selected.delete(s.id);
+    else if(selected.size<4)selected.add(s.id);
+    else {message.textContent='W jednej rezerwacji możesz wybrać maksymalnie 4 miejsca.';return;}
+    message.textContent='';render();
+   };line.append(b);
+  }map.append(line);
+ }
+ document.getElementById('selected').textContent=selected.size?'Twój wybór: '+[...selected].map(id=>'rząd '+id.split('-')[0]+', miejsce '+id.split('-')[1]).join('; '):'Nie wybrano miejsc.';
+}
+async function load(){
+ const r=await fetch('/api/status'),d=await r.json();
+ if(!r.ok)throw Error('Nie można teraz sprawdzić miejsc. Spróbuj później.');
+ if(!d.open){form.classList.add('hidden');availability.textContent='Zapisy są obecnie zamknięte.';return;}
+ seatData=d.seats;for(const id of selected)if(!seatData.some(s=>s.id===id&&s.status==='available'))selected.delete(id);
+ render();form.classList.remove('hidden');availability.textContent=d.waitlist?'Wszystkie udostępnione miejsca są zajęte. Możesz zapisać się na listę rezerwową.':'Wybierz miejsca na planie sali.';
+ if(!document.getElementById('turnstile-script')){
+  const s=document.createElement('script');s.id='turnstile-script';s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+  s.onload=()=>{widget=window.turnstile.render('#challenge',{sitekey:d.siteKey,theme:'dark'});};document.head.append(s);
+ }
+}
+waiting.onchange=()=>{selected.clear();document.getElementById('waitCount').classList.toggle('hidden',!waiting.checked);render();};
+document.getElementById('reload').onclick=()=>load().catch(e=>message.textContent=e.message);
 form.addEventListener('submit',async e=>{
-  e.preventDefault();const button=form.querySelector('button');button.disabled=true;message.textContent='Wysyłam zgłoszenie…';
-  try {
-    const r=await fetch('/api/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(form)))});
-    const data=await r.json();
-    if(!r.ok) throw new Error(data.error==='DUPLICATE'?'Ten adres ma już aktywne zgłoszenie. Sprawdź swoją skrzynkę.':'Zgłoszenia nie udało się przyjąć. Spróbuj później.');
-    form.classList.add('hidden');
-    message.textContent=data.status==='waiting'?'Jesteś na liście rezerwowej. Sprawdź wiadomość e-mail; odezwiemy się, jeśli miejsce się zwolni.':'Zgłoszenie przyjęte. Sprawdź wiadomość e-mail i potwierdź adres w ciągu 24 godzin.';
-  } catch(err) {message.textContent=err.message;button.disabled=false;window.turnstile?.reset();}
+ e.preventDefault();message.textContent='';
+ const p=normalize(document.getElementById('phone').value),repeat=normalize(document.getElementById('phoneRepeat').value);
+ if(!/^\+?[0-9]{9,15}$/.test(p)||p!==repeat){message.textContent='Wpisz poprawny numer telefonu identycznie w obu polach.';return;}
+ if(!waiting.checked&&!selected.size){message.textContent='Wybierz przynajmniej jedno miejsce.';return;}
+ const button=document.getElementById('submit');button.disabled=true;
+ try{
+  const body={...Object.fromEntries(new FormData(form)),seatIds:[...selected],waiting:waiting.checked};
+  const r=await fetch('/api/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();
+  const errors={DUPLICATE:'Ten e-mail ma już aktywne zgłoszenie. Sprawdź skrzynkę.',SEATS_UNAVAILABLE:'Ktoś właśnie zarezerwował wybrane miejsca. Wybierz inne na odświeżonym planie.',CHALLENGE:'Potwierdź zabezpieczenie formularza.',INVALID_INPUT:'Sprawdź dane i zgodność obu numerów telefonu.',MAIL_UNAVAILABLE:'Nie udało się wysłać wiadomości. Zgłoszenie zostało anulowane; spróbuj ponownie.'};
+  if(!r.ok){if(d.error==='SEATS_UNAVAILABLE')await load();throw Error(errors[d.error]||'Nie udało się przyjąć zgłoszenia. Spróbuj później.');}
+  form.classList.add('hidden');availability.textContent='';
+  message.textContent=d.status==='waiting'?'Sprawdź e-mail i potwierdź adres w ciągu 24 godzin, aby zachować zgłoszenie na liście rezerwowej.':'Sprawdź e-mail i potwierdź adres w ciągu 24 godzin, najpóźniej do wskazanego terminu. Bez potwierdzenia miejsca zostaną zwolnione.';
+ }catch(err){message.textContent=err.message;window.turnstile?.reset(widget);}
+ finally{button.disabled=false;}
 });
+load().catch(e=>availability.textContent=e.message);
 </script></body></html>

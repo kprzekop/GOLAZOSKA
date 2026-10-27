@@ -1,16 +1,19 @@
 <!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>Twoja rezerwacja – Goła Zośka 1812</title>
-<style>:root{color-scheme:dark}body{background:#101716;color:#e8e4d9;font:20px/1.5 Arial,sans-serif}main{max-width:620px;margin:8vh auto;padding:32px;border:1px solid #c8a77b}a{color:#c8a77b}button{padding:14px 20px;margin:10px 12px 10px 0;background:#c8a77b;color:#101716;border:0;cursor:pointer;font-size:17px}button:disabled{opacity:.5}</style></head><body><main><a href="/">← Strona filmu</a><h1>Twoja rezerwacja</h1><p id="state">Sprawdzam…</p><div id="actions"></div></main>
+<style>:root{color-scheme:dark}body{background:#101716;color:#e8e4d9;font:20px/1.5 Arial,sans-serif}main{max-width:620px;margin:8vh auto;padding:32px;border:1px solid #c8a77b}a{color:#c8a77b}button{padding:14px 20px;margin:10px 12px 10px 0;background:#c8a77b;color:#101716;border:0;cursor:pointer;font-size:17px}button:disabled{opacity:.5}</style></head><body><main><a href="/">← Strona filmu</a><h1>Twoja rezerwacja</h1><p>21 listopada 2026, godz. 19:00 · sala widowiskowa MDK, Rynek Zygmunta Augusta 9; wejście od ul. Kościelnej, II piętro.</p><p id="places"></p><p id="state">Sprawdzam…</p><div id="actions"></div></main>
 <script>
 const token=new URLSearchParams(location.search).get('token'),state=document.getElementById('state'),actions=document.getElementById('actions');
-const labels={verification:'Potwierdź adres e-mail, aby utrzymać rezerwację.',reserved:'Adres sprawdzony. Przed premierą potwierdź jeszcze swój udział.',confirmed:'Udział potwierdzony. Do zobaczenia na premierze!',waiting:'Jesteś na liście rezerwowej. Jeśli zwolni się miejsce, wyślemy propozycję.',offered:'Zwolniło się miejsce. Potwierdź, że przyjmujesz propozycję.',cancelled:'Rezerwacja została anulowana.',expired:'Termin potwierdzenia minął. Rezerwacja wygasła.'};
+const labels={verification:'Potwierdź adres e-mail, aby utrzymać rezerwację.',reserved:'Adres sprawdzony. Od 14 listopada godz. 19:00 potwierdź udział do 18 listopada godz. 19:00; wyślemy przypomnienie.',confirmed:'Udział potwierdzony. Do zobaczenia na premierze!',waiting:'Jesteś na liście rezerwowej. Jeśli zwolni się miejsce, wyślemy propozycję.',offered:'Zwolniło się miejsce. Potwierdź, że przyjmujesz propozycję.',cancelled:'Rezerwacja została anulowana.',expired:'Termin potwierdzenia minął. Rezerwacja wygasła.'};
 async function load(){
   if(!token){state.textContent='Nieprawidłowy link.';return}
   try{
     const r=await fetch('/api/booking?token='+encodeURIComponent(token)),data=await r.json();
     if(!r.ok)throw Error('Nie znaleziono rezerwacji.');
     state.textContent=labels[data.status]||'Sprawdź status rezerwacji.';
+    if(data.status==='waiting'&&!data.emailVerified)state.textContent='Potwierdź adres e-mail w ciągu 24 godzin, aby zachować zgłoszenie na liście rezerwowej.';
+    document.getElementById('places').textContent=(data.seatIds||[]).map(id=>'Rząd '+id.split('-')[0]+', miejsce '+id.split('-')[1]).join('; ');
+    if(data.offerExpiresAt&&data.status==='offered')state.textContent+=' Termin: '+new Date(data.offerExpiresAt).toLocaleString('pl-PL',{timeZone:'Europe/Warsaw'});
     actions.replaceChildren();
-    if(['verification','reserved','offered'].includes(data.status)) button('Potwierdzam', 'confirm');
+    if(data.canConfirm) button('Potwierdzam', 'confirm');
     if(!['cancelled','expired'].includes(data.status)) button('Anuluję rezerwację','cancel');
   }catch(e){state.textContent=e.message}
 }

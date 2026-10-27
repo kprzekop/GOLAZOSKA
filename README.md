@@ -1,45 +1,57 @@
 # Rezerwacje premiery „Goła Zośka 1812”
 
-Przygotowany system jest domyślnie zamknięty. Formularz pojawi się na stronie filmu dopiero po ustawieniu `RESERVATIONS_OPEN=true` i po podłączeniu bazy, poczty oraz Turnstile. Data pokazu: 21 listopada 2026. Godzina i sala są jeszcze do uzupełnienia w treści strony i e-maili przed uruchomieniem.
+Kod obejmuje wybór numerowanych miejsc, weryfikację e-maila, obowiązkowy telefon wpisany dwukrotnie (bez SMS), ponowne potwierdzenie udziału, listę rezerwową i panel organizatora. Zapisy pozostają zamknięte, dopóki nie zostaną skonfigurowane usługi i wykonany test dostarczenia prawdziwego e-maila.
 
-## Pojemność i zasady
+## Wydarzenie i miejsca
 
-- 81 miejsc fizycznych według organizatora. 60 miejsc w publicznej puli internetowej, 20 zaproszeń do obsługi ręcznej, 1 miejsce bez przydziału.
-- Bez numerowanych miejsc. Miejsca stojące i wszelkie dodatkowe wejścia wymagają osobnej decyzji organizatora i zgody sali; system ich nie przydziela.
-- W jednym zgłoszeniu można poprosić o 1–4 miejsca. Jeden aktywny zapis na adres e-mail.
-- Zgłoszenie zajmuje miejsce na 24 godziny, do sprawdzenia adresu e-mail. Po kliknięciu ma status `reserved`. Od 14 listopada kliknięcie od razu potwierdza udział.
-- 14 listopada rano wysyłana jest prośba o ponowne potwierdzenie. Termin: koniec 17 listopada czasu polskiego. Rezerwacje, którym wiadomość faktycznie wysłano, wygasają od 18 listopada; rezerwacje z błędem wysyłki nie wygasają automatycznie.
-- Zwolnione miejsca trafiają w kolejności do listy rezerwowej. Każda propozycja blokuje miejsca na 48 godzin (najpóźniej do początku dnia premiery) i wymaga przyjęcia przez kliknięcie.
-- 19 listopada wysyłane jest przypomnienie osobom potwierdzonym. Ręczne anulowanie i potwierdzenie przez organizatora są dostępne w `/organizator.html`; CSV służy do przygotowania listy na wejście.
-- Liczby miejsc nie są publikowane w widoku dla widzów.
+21 listopada 2026, godz. 19:00, sala widowiskowa MDK, Rynek Zygmunta Augusta 9, wejście od ul. Kościelnej, II piętro. Strefa czasowa: Europe/Warsaw.
 
-## Uruchomienie
+| Rząd | Miejsc | Pula |
+|---|---:|---|
+| 1 | 12 | organizacyjna |
+| 2 | 13 | organizacyjna |
+| 3 | 12 | organizacyjna |
+| 4 | 13 | organizacyjna |
+| 5 | 12 | 1–10 dostępne; 11–12 wstrzymane |
+| 6 | 13 | 1–11 dostępne; 12–13 wstrzymane |
+| 7 | 8 | 1–6 dostępne; 7–8 wstrzymane |
 
-1. W projekcie Vercel dołącz relacyjną bazę Neon Postgres, a plik `db/schema.sql` uruchom **raz** w jej edytorze SQL. Nie publikuj adresu `DATABASE_URL`.
-2. Zweryfikuj domenę nadawczą w Resend i ustaw `RESEND_API_KEY`, `MAIL_FROM` oraz opcjonalny `MAIL_REPLY_TO` (skrzynka do odpowiedzi). Sama usługa wysyłkowa nie tworzy skrzynki odbiorczej. Sprawdź wysyłkę testową i rekordy DNS domeny.
-3. Utwórz widżet Cloudflare Turnstile dla `www.golazoska.com`; ustaw `TURNSTILE_SITE_KEY` i tajny `TURNSTILE_SECRET_KEY`. Backend sprawdza token u Cloudflare.
-4. Ustaw losowe, długie `ADMIN_TOKEN` i `CRON_SECRET` jako sekrety Vercel. `PUBLIC_BASE_URL=https://www.golazoska.com` i `TURNSTILE_HOSTNAME=www.golazoska.com`. Wstępnie pozostaw `RESERVATIONS_OPEN=false`.
-5. Sprawdź testowy zapis, dostarczenie i kliknięcie wiadomości, anulowanie, listę rezerwową, limit oraz widok organizatora w środowisku testowym. Włącz `RESERVATIONS_OPEN=true` dopiero po podaniu ostatecznej sali i godziny, dopracowaniu informacji o przetwarzaniu danych oraz testach.
+Łącznie 83 miejsca: 50 organizacyjnych, 27 dostępnych na początku, 6 do późniejszego wypuszczenia. Rząd 1 jest przy ekranie. Przyjęta numeracja na planie: od lewej do prawej, patrząc w stronę ekranu; organizator powinien sprawdzić ją względem numerów foteli przed otwarciem zapisów.
 
-Vercel uruchamia `/api/cron` codziennie o 08:00 UTC (10:00 w Polsce w listopadzie). Wywołanie jest chronione `CRON_SECRET`. Zmiany `vercel.json` wymagają ponownego wdrożenia.
+W jednym zgłoszeniu 1–4 miejsca, jeden aktywny zapis na e-mail. Ta sama blokada w bazie obejmuje wszystkie przydziały i zmiany puli, chroniąc przed podwójną rezerwacją. Wybrane miejsce zostaje zablokowane dopiero po przyjęciu formularza, nie po kliknięciu na planie. Konflikt wymaga ponownego wyboru.
 
-## Statusy i ręczna obsługa
+## Terminy potwierdzeń
 
-| Status | Znaczenie |
-| --- | --- |
-| `verification` | Zgłoszenie zajmuje miejsce i czeka na sprawdzenie adresu |
-| `reserved` | E-mail sprawdzony, oczekiwanie na potwierdzenie udziału |
-| `confirmed` | Udział potwierdzony |
-| `waiting` | Lista rezerwowa; nie uprawnia do wejścia |
-| `offered` | Oferta zwolnionego miejsca, termin ograniczony |
-| `cancelled` / `expired` | Miejsce zwolnione |
+- E-mail trzeba sprawdzić przez link w ciągu 24 godzin. Wejście w link pokazuje przycisk; dopiero jego naciśnięcie potwierdza zgłoszenie, więc automatyczne skanery poczty nie potwierdzają udziału.
+- Prośba o ponowne potwierdzenie udziału jest wysyłana od 14 listopada godz. 19:00.
+- Termin ostateczny: **18 listopada 2026, godz. 19:00**, dokładnie 72 godziny przed pokazem. Wygasają wszystkie wcześniejsze niepotwierdzone rezerwacje, także gdy prośba o potwierdzenie nie została dostarczona.
+- Potwierdzenie e-maila od 14 listopada godz. 19:00 od razu potwierdza udział.
+- Nowe zgłoszenia od 18 listopada godz. 19:00 wymagają potwierdzenia e-maila w ciągu 24 godzin, najpóźniej do początku pokazu. Zapisy zamykają się na początku pokazu.
+- Lista rezerwowa także wymaga weryfikacji e-maila w 24 godziny. Zadanie dzienne przydziela zwolnione fotele w kolejności zgłoszeń, pomijając grupy większe niż bieżąca liczba wolnych foteli. Preferuje miejsca obok siebie; gdy ich brak, oferta może obejmować rozdzielone miejsca. Oferta wskazuje numery i wygasa po 48 godzinach, najpóźniej na początku pokazu.
+- 19 listopada zadanie dzienne zaczyna wysyłać przypomnienia potwierdzonym osobom. Nie obejmuje ono rezerwacji potwierdzonych dopiero po ostatnim zadaniu przed seansem; ich szczegóły są w wiadomości początkowej i pod linkiem zarządzania.
 
-Przycisk „Zaproponuj” w panelu zmienia status, a e-mail z ofertą wyśle najbliższe uruchomienie zadania dziennego. Nie używaj go do miejsc stojących. Zaproszenia specjalne trzymaj na osobnej, prywatnej liście; przed wejściem sprawdź łączną liczbę publicznych rezerwacji, gości i wejść dodatkowych względem zatwierdzonej pojemności sali.
+Zadanie Vercel działa raz dziennie o 18:00 UTC, czyli **19:00 w Polsce w listopadzie**. W planie Hobby uruchomienie może nastąpić z opóźnieniem w obrębie godziny. Wygasanie nie zależy tylko od zadania: odczyt planu, obsługa rezerwacji i panel uruchamiają kontrolę terminu, więc przeterminowane fotele wracają do dostępności przy następnej operacji. Oferty z listy rezerwowej i e-maile czekają na zadanie dzienne. Jeśli potrzebna jest wysyłka i automatyczne zadanie dokładnie o 19:00, należy dobrać plan lub zewnętrzny harmonogram przed otwarciem.
 
-## Znane ograniczenia
+## Podłączenie usług i uruchomienie
 
-- Bez bazy i kluczy e-mail formularz pozostaje zamknięty. Samo wdrożenie kodu nie przyjmuje rezerwacji.
-- Wiadomość zaakceptowana do wysyłki może później odbić; organizator powinien kontrolować błędy dostarczania i ręcznie kontaktować się z takimi osobami.
-- Funkcja planowana działa raz dziennie w planie Vercel Hobby. Ręczne zmiany w panelu mogą czekać do następnego uruchomienia na powiadomienie e-mail.
-- Panel organizatora jest chroniony kluczem, a jego adres nie jest linkowany publicznie. Pobranego CSV nie publikuj.
-- Data wysłania końcowego przypomnienia nie wystarcza do podania sali i godziny: uzupełnij te informacje w wiadomościach przed otwarciem.
+1. Załóż **Neon Postgres**, najlepiej w regionie UE, i ustaw prywatne DATABASE_URL w Vercelu. W nowej bazie wykonaj db/schema.sql. Dla starej pustej instalacji użyj db/migrate-numbered-seats.sql. Migracja odmawia działania przy jakichkolwiek istniejących zgłoszeniach, aby nie zmienić przydziałów; wtedy potrzebne jest osobne uzgodnienie danych.
+2. Załóż **Resend** i zweryfikuj domenę golazoska.com rekordami DNS wskazanymi przez usługę. Ustaw RESEND_API_KEY, MAIL_FROM=Goła Zośka <rezerwacje@golazoska.com> oraz MAIL_REPLY_TO=rezerwacje@golazoska.com. Skrzynkę do odbioru odpowiedzi trzeba utworzyć u operatora poczty – Resend jej nie tworzy. Nie zmieniaj rekordów MX domeny podczas weryfikowania nadawcy.
+3. Utwórz **Cloudflare Turnstile** dla www.golazoska.com. Ustaw TURNSTILE_SITE_KEY oraz TURNSTILE_SECRET_KEY. PUBLIC_BASE_URL=https://www.golazoska.com i TURNSTILE_HOSTNAME=www.golazoska.com muszą odpowiadać domenie formularza. Upewnij się, że wejście przez golazoska.com przekierowuje na www, zanim widz zobaczy formularz.
+4. Utwórz mocne, niezależne ADMIN_TOKEN i CRON_SECRET. Ten pierwszy chroni /organizator.html, drugi /api/cron. Zostaw RESERVATIONS_OPEN=false. Sekrety wpisuj w panelu Vercela; nie dodawaj ich do repozytorium ani rozmowy.
+5. Sprawdź informację prywatności: administrator Krzysztof Przekop, kontakt rezerwacje@golazoska.com. Proponowany termin retencji: 21 grudnia 2026; zadanie od 22 grudnia usuwa dane z aktywnej bazy. Administrator usuwa osobno eksporty CSV i sprawdza retencję dostawców oraz zasady przekazywania danych po wyborze konkretnych usług.
+6. Wykonaj test prawdziwego zapisu w osobnym środowisku z osobną bazą i kluczami: odbiór e-maila, kliknięcie, widok miejsc, anulowanie, telefon, konflikt rezerwacji, panel i lista rezerwowa. Sprawdź zadanie dzienne oraz dostarczanie i odbicia e-maili w Resend. Testy automatyczne używają atrapy wysyłki – nie potwierdzają dostarczalności.
+7. Dopiero po testach ustaw RESERVATIONS_OPEN=true w produkcji i wdroż zmianę. /api/status musi zwrócić open:true i plan 83 foteli.
+
+## Obsługa organizatora
+
+/organizator.html pokazuje nazwisko, e-mail, telefon, liczbę osób, konkretne miejsca i status. Eksport CSV zabezpiecza pola zaczynające się od znaków formuł arkusza. Klucz panelu jest trzymany tylko w pamięci strony.
+
+Przyciski przy fotelach w rzędach 5–7 pozwalają udostępnić lub wstrzymać wolne miejsce. Zajętych foteli i puli organizacyjnej nie można w ten sposób przenieść. Zmiany są zapisywane w bazie i od razu widoczne przy odświeżeniu planu. Rzędy 1–4 obsługuj na osobnej liście organizacyjnej.
+
+Ręczna propozycja dla zweryfikowanej listy rezerwowej przydziela fotele, a wiadomość wyśle zadanie dzienne. Potwierdzenie i anulowanie są dostępne dla odpowiednich statusów.
+
+## Testy
+
+Node.js 22 lub 24: npm install, następnie npm test. Testy korzystają z prawdziwego silnika Postgres w PGlite, sprawdzają granice czasowe, pule, konflikty, migrację, formularz w DOM i połączenie API z bazą. Wysyłka i zabezpieczenie Cloudflare są w testach zastępowane atrapami.
+
+Testy nie zastępują sprawdzenia równoległych połączeń w Neon ani rzeczywistej wysyłki e-maili. Przed otwarciem trzeba jeszcze sprawdzić wybrane regiony i konfigurację usług. Publiczny status nie zwraca danych osobowych ani tokenów.
