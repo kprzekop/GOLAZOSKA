@@ -11,11 +11,20 @@ async function load(){
     if(!r.ok)throw Error('Nie znaleziono rezerwacji.');
     state.textContent=labels[data.status]||'Sprawdź status rezerwacji.';
     if(data.status==='waiting'&&!data.emailVerified)state.textContent='Potwierdź adres e-mail w ciągu 24 godzin, aby zachować zgłoszenie na liście rezerwowej.';
-    document.getElementById('places').textContent=(data.seatIds||[]).map(id=>'Rząd '+id.split('-')[0]+', miejsce '+id.split('-')[1]).join('; ');
+    const active=!['cancelled','expired'].includes(data.status);
+    document.getElementById('places').textContent=active?(data.admission==='standing'?'Wejście dla '+data.seats+' osób bez gwarancji fotela — udział może odbyć się na stojąco.':data.admission==='waiting'?'Lista rezerwowa: '+data.seats+' osób. Samo zgłoszenie nie uprawnia do wejścia.':''):'';
+    const seatText=(data.seatIds||[]).map(id=>'Rząd '+id.split('-')[0]+', miejsce '+id.split('-')[1]).join('; ');
+    if(active&&seatText)document.getElementById('places').textContent+=(data.status==='offered'?' Proponowane fotele: ':' ')+seatText;
+    if(data.status==='offered')state.textContent=data.offerTarget==='standing'
+     ?'Możesz przyjąć wejście bez gwarancji fotela; udział może odbyć się na stojąco.'
+     :data.admission==='standing'?'Zwolniły się fotele. Przyjmij propozycję dla całej grupy albo zachowaj wejście bez gwarancji fotela.':'Zwolniły się fotele. Przyjmij propozycję, aby uzyskać rezerwację.';
+    if(data.status==='confirmed'&&data.admission==='standing')state.textContent='Udział potwierdzony. Zapraszamy na pokaz; udział może odbyć się na stojąco. Jeśli zwolnią się fotele, wyślemy osobną ofertę.';
+    if(data.status==='waiting'&&data.emailVerified)state.textContent='Adres potwierdzony. Oczekujesz na ofertę. Przyjdź dopiero po otrzymaniu i przyjęciu zaproszenia.';
     if(data.offerExpiresAt&&data.status==='offered')state.textContent+=' Termin: '+new Date(data.offerExpiresAt).toLocaleString('pl-PL',{timeZone:'Europe/Warsaw'});
     actions.replaceChildren();
-    if(data.canConfirm) button('Potwierdzam', 'confirm');
-    if(!['cancelled','expired'].includes(data.status)) button('Anuluję rezerwację','cancel');
+    if(data.canConfirm) button(data.status==='offered'?'Przyjmuję propozycję':'Potwierdzam', 'confirm');
+    if(data.canDecline)button('Zostaję bez fotela','decline');
+    if(!['cancelled','expired'].includes(data.status)) button('Anuluję całe zgłoszenie','cancel');
   }catch(e){state.textContent=e.message}
 }
 function button(label,action){
