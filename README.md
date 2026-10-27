@@ -31,10 +31,10 @@ W jednym zgłoszeniu 1–4 miejsca, jeden aktywny zapis na e-mail. Ta sama bloka
 - Termin ostateczny: **18 listopada 2026, godz. 19:00**, dokładnie 72 godziny przed pokazem. Wygasają wszystkie wcześniejsze niepotwierdzone rezerwacje, także gdy prośba o potwierdzenie nie została dostarczona.
 - Potwierdzenie e-maila od 14 listopada godz. 19:00 od razu potwierdza udział.
 - Nowe zgłoszenia od 18 listopada godz. 19:00 wymagają potwierdzenia e-maila w ciągu 24 godzin, najpóźniej do początku pokazu. Zapisy zamykają się na początku pokazu.
-- Lista rezerwowa także wymaga weryfikacji e-maila w 24 godziny. Zadanie dzienne przydziela zwolnione fotele w kolejności zgłoszeń, pomijając grupy większe niż bieżąca liczba wolnych foteli. Preferuje miejsca obok siebie; gdy ich brak, oferta może obejmować rozdzielone miejsca. Oferta wskazuje numery i wygasa po 48 godzinach, najpóźniej na początku pokazu.
+- Lista rezerwowa także wymaga weryfikacji e-maila w 24 godziny. System automatycznie przydziela zwolnione fotele w kolejności zgłoszeń, pomijając grupy większe niż bieżąca liczba wolnych foteli. Preferuje miejsca obok siebie; gdy ich brak, oferta może obejmować rozdzielone miejsca. Oferta wskazuje numery i wygasa po 48 godzinach, najpóźniej na początku pokazu.
 - 19 listopada zadanie dzienne zaczyna wysyłać przypomnienia potwierdzonym osobom. Nie obejmuje ono rezerwacji potwierdzonych dopiero po ostatnim zadaniu przed seansem; ich szczegóły są w wiadomości początkowej i pod linkiem zarządzania.
 
-Zadanie Vercel działa raz dziennie o 18:00 UTC, czyli **19:00 w Polsce w listopadzie**. W planie Hobby uruchomienie może nastąpić z opóźnieniem w obrębie godziny. Wygasanie nie zależy tylko od zadania: odczyt planu, obsługa rezerwacji i panel uruchamiają kontrolę terminu, więc przeterminowane fotele wracają do dostępności przy następnej operacji. Oferty z listy rezerwowej i e-maile czekają na zadanie dzienne. Jeśli potrzebna jest wysyłka i automatyczne zadanie dokładnie o 19:00, należy dobrać plan lub zewnętrzny harmonogram przed otwarciem.
+Zadanie Vercel działa raz dziennie o 18:00 UTC, czyli **19:00 w Polsce w listopadzie**. W planie Hobby uruchomienie może nastąpić z opóźnieniem w obrębie godziny. Wygasanie nie zależy tylko od zadania: odczyt planu, obsługa rezerwacji i panel uruchamiają kontrolę terminu, więc przeterminowane fotele wracają do dostępności przy następnej operacji. Oferty z kolejki i e-maile są obsługiwane również po zwolnieniu miejsc lub przy kolejnym żądaniu do backendu. Jeśli potrzebna jest wysyłka i automatyczne zadanie dokładnie o 19:00, należy dobrać plan lub zewnętrzny harmonogram przed otwarciem.
 
 ## Podłączenie usług i uruchomienie
 
@@ -56,10 +56,26 @@ Cały rząd 5 został wyłączony z zapisów. Przy pierwszym odczycie statusu lu
 
 Przyciski przy fotelach w rzędach 6–7 pozwalają udostępnić lub wstrzymać wolne miejsce. Zajętych foteli i puli organizacyjnej nie można w ten sposób przenieść. Zmiany są zapisywane w bazie i od razu widoczne przy odświeżeniu planu. Rzędy 1–5 obsługuj na osobnej liście organizacyjnej.
 
-Ręczna propozycja dla zweryfikowanej listy rezerwowej przydziela fotele, a wiadomość wyśle zadanie dzienne. Potwierdzenie i anulowanie są dostępne dla odpowiednich statusów.
+Ręczna propozycja dla zweryfikowanej listy rezerwowej przydziela fotele, a wiadomość jest wysyłana automatycznie. Potwierdzenie i anulowanie są dostępne dla odpowiednich statusów.
 
 ## Testy
 
 Node.js 22 lub 24: npm install, następnie npm test. Testy korzystają z prawdziwego silnika Postgres w PGlite, sprawdzają granice czasowe, pule, konflikty, migrację, formularz w DOM i połączenie API z bazą. Wysyłka i zabezpieczenie Cloudflare są w testach zastępowane atrapami.
 
 Testy nie zastępują sprawdzenia równoległych połączeń w Neon ani rzeczywistej wysyłki e-maili. Przed otwarciem trzeba jeszcze sprawdzić wybrane regiony i konfigurację usług. Publiczny status nie zwraca danych osobowych ani tokenów.
+
+## Wejścia bez gwarancji fotela i dalsza lista rezerwowa
+
+Dodatkowa pula: **20 osób**, liczona razem z niezweryfikowanymi, zarezerwowanymi, potwierdzonymi i oczekującymi na przyjęcie oferty wejścia. W tej puli nie ma przypisanych foteli; udział może odbyć się na stojąco. Po jej wyczerpaniu całe grupy trafiają na dalszą listę rezerwową. Nie dzielimy grupy, aby wypełnić ostatnie pojedyncze miejsce.
+
+Formularz wymaga osobnego potwierdzenia zrozumienia zasad. Zgłoszenia na listę rezerwową nie uprawniają do wejścia; widz musi otrzymać i przyjąć ofertę. Osoby bez gwarancji fotela, po potwierdzeniu adresu i następnie udziału, są zaproszone na pokaz. Informacja o rodzaju wejścia występuje w wiadomościach, stronie zarządzania, panelu i CSV.
+
+Wolne fotele automatyczna kolejka proponuje najpierw zweryfikowanym grupom z puli bez foteli, według daty i wielkości grupy mieszczącej się w wolnej puli. Przyjęcie oferty zwalnia wejścia bez foteli. Nieprzyjęta lub odrzucona oferta foteli nie usuwa wcześniejszego wejścia bez fotela; taki gość nie otrzymuje kolejnych ofert foteli automatycznie. Obowiązek końcowego potwierdzenia udziału do 18 listopada 19:00 nadal obowiązuje.
+
+Dalsza lista rezerwowa otrzymuje kolejno dostępne fotele lub zwolnione wejścia bez foteli, zawsze do przyjęcia w 48 godzin, najpóźniej do początku pokazu. Oferty mogą obejmować rozdzielone fotele, jeśli brak wystarczającego bloku miejsc obok siebie.
+
+Przy pierwszym wywołaniu backendu lib/seat-policy.js stosuje transakcyjnie db/migrate-admissions.sql (statyczna kopia: lib/admission-schema.js), z zachowaniem istniejących zgłoszeń. Baza blokuje przydziały tą samą blokadą konfiguracji, więc limit 20 nie zależy od liczników w przeglądarce. Zmiana nie odblokowuje rzędów organizacyjnych ani czterech wstrzymanych foteli i nie przesuwa startu 5 listopada 18:00.
+
+Organizator polecił wdrożyć pulę 20 wejść jak po uzyskaniu zgody MDK; zadeklarował uzyskanie zgody do 30 października. Potwierdzenie ustaleń z salą pozostaje po stronie organizatora.
+
+Kolejka uruchamia się automatycznie po anulowaniu, potwierdzeniu oferty, odblokowaniu fotela, odczycie aktualnego statusu i panelu oraz w zadaniu dziennym. Wygaśnięcia bez aktywności na stronie są obsługiwane przez zadanie dzienne; przy ruchu na stronie są wykrywane przy następnym żądaniu. Powiadomienia ofertowe mają krótką blokadę wysyłki chroniącą przed równoległymi kopiami. W panelu „Anuluj i zwolnij” oddaje miejsca do kolejki, natomiast „Anuluj i zablokuj fotele” anuluje i wstrzymuje przypisane fotele w jednej transakcji, zanim kolejka może je przejąć.

@@ -11,6 +11,7 @@ mock.module('../lib/shared.js',{namedExports:{
    const text=strings.map((s,i)=>s+(i<values.length?'$'+(i+1):'')).join('');
    return {text,values,then(resolve,reject){return db.query(text,values).then(r=>r.rows).then(resolve,reject);}};
   };
+  tag.query=(text,values=[])=>({text,values,then(resolve,reject){return db.query(text,values).then(r=>r.rows).then(resolve,reject);}});
   tag.transaction=queries=>db.transaction(async tx=>{
    const results=[];
    for(const q of queries)results.push((await tx.query(q.text,q.values)).rows);
@@ -120,4 +121,64 @@ test('wyłączenie rzędu 5 nie anuluje ani nie nadpisuje istniejącej rezerwacj
   assert.equal((await db.query("SELECT count(*)::int n FROM premiere_seats WHERE row_no=5 AND pool='organizational'")).rows[0].n,0);
   assert.equal((await db.query('SELECT guest_capacity FROM premiere_config WHERE id=1')).rows[0].guest_capacity,50);
  }finally{await db.close();mock.timers.reset();}
+});
+
+test('automatyczny obieg: rezygnacja, oferta fotela, uzupełnienie puli 20 i blokada organizatora',async()=>{
+ mock.timers.enable({apis:['Date'],now:new Date('2026-11-15T12:00:00+01:00')});
+ db=new PGlite();mails=[];
+ await db.exec(schema.replaceAll('now()',"'2026-11-15 12:00+01'::timestamptz"));
+ try{
+  await call(status);
+  const {ADMISSION_SCHEMA}=await import('../lib/admission-schema.js');
+  await db.exec(ADMISSION_SCHEMA.replaceAll('now()',"'2026-11-15 12:00+01'::timestamptz"));
+  let seq=0;
+  async function add(n,ids=[]){
+   const [r]=(await db.query('SELECT * FROM premiere_create($1,$2,$3,$4::text[],$5,$6)',
+    ['Jan Kowalski','queue'+(++seq)+'@example.com','600123456',ids,n,ids.length===0])).rows;
+   await db.query("SELECT * FROM premiere_action($1,'confirm')",[r.booking_token]);return r;
+  }
+  const holder=await add(1,['6-1']);
+  await db.query("UPDATE premiere_seats SET pool='held' WHERE pool='public' AND id<>'6-1'");
+  await db.query("UPDATE premiere_config SET public_capacity=1 WHERE id=1");
+  const firstStanding=await add(1);
+  for(let n=19;n>0;){const size=Math.min(4,n);await add(size);n-=size;}
+  const waiting=await add(1);
+  assert.equal((await db.query('SELECT admission FROM premiere_reservations WHERE id=$1',[waiting.booking_id])).rows[0].admission,'waiting');
+  const cancelled=await call(booking,'POST',{token:holder.booking_token,action:'cancel'});
+  assert.equal(cancelled.body.status,'cancelled');
+  assert.equal((await db.query('SELECT offer_target FROM premiere_reservations WHERE id=$1',[firstStanding.booking_id])).rows[0].offer_target,'seated');
+  assert.equal(mails.length,1);assert.match(mails[0][2],/Proponowane fotele/);
+  await call(booking,'POST',{token:firstStanding.booking_token,action:'confirm'});
+  assert.equal((await db.query('SELECT offer_target FROM premiere_reservations WHERE id=$1',[waiting.booking_id])).rows[0].offer_target,'standing');
+  assert.equal(mails.length,2);assert.match(mails[1][2],/bez gwarancji fotela/);
+  await call(booking,'POST',{token:waiting.booking_token,action:'confirm'});
+  assert.equal((await db.query('SELECT premiere_standing_used() AS n')).rows[0].n,20);
+  const later=await add(1);
+  await call(admin,'POST',{id:firstStanding.booking_id,action:'cancel_hold'},{} ,'Bearer admin-test');
+  const seat=(await db.query("SELECT pool,reservation_id FROM premiere_seats WHERE id='6-1'")).rows[0];
+  assert.equal(seat.pool,'held');assert.equal(seat.reservation_id,null);
+  await call(status);
+  assert.equal((await db.query('SELECT status FROM premiere_reservations WHERE id=$1',[later.booking_id])).rows[0].status,'waiting');
+ }finally{await db.close();mock.timers.reset();}
+});
+
+test('publiczny formularz przydziela pulę 20 po zgodzie, a kolejne zgłoszenia na dalszą listę',async()=>{
+ mock.timers.enable({apis:['Date'],now:new Date('2026-11-06T12:00:00+01:00')});
+ db=new PGlite();mails=[];const oldFetch=globalThis.fetch;
+ globalThis.fetch=async()=>({json:async()=>({success:true,hostname:'www.golazoska.com'})});
+ await db.exec(schema.replaceAll('now()',"'2026-11-06 12:00+01'::timestamptz"));
+ try{
+  await call(status);
+  const body={...data,email:'consent@example.com',seatIds:[],waiting:true,seats:4};
+  assert.equal((await call(reserve,'POST',body)).body.error,'INVALID_INPUT');
+  for(let i=0;i<5;i++){
+   const r=await call(reserve,'POST',{...body,email:'overflow'+i+'@example.com',acceptStanding:true});
+   assert.equal(r.code,200);assert.equal(r.body.admission,'standing');assert.equal(r.body.status,'verification');
+  }
+  assert.equal((await db.query('SELECT premiere_standing_used() AS n')).rows[0].n,20);
+  assert.match(mails[0][2],/udział może odbyć się na stojąco/);
+  const last=await call(reserve,'POST',{...body,email:'last@example.com',seats:1,acceptStanding:true});
+  assert.equal(last.code,200);assert.equal(last.body.admission,'waiting');assert.equal(last.body.status,'waiting');
+  assert.match(mails.at(-1)[2],/nie uprawnia do wejścia/);
+ }finally{globalThis.fetch=oldFetch;await db.close();mock.timers.reset();}
 });

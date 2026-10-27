@@ -3,11 +3,13 @@
 </head><body><main>
 <h1>Goła Zośka – organizator</h1><p class="muted">Ten adres nie jest publicznie linkowany. Listę chroni hasło serwerowe. Nigdy nie przesyłaj go widzom.</p>
 <form id="auth"><label>Klucz organizatora <input id="key" type="password" required autocomplete="off"></label><button>Zobacz listę</button></form>
-<section id="pools" hidden><h2>Ostatnie miejsca</h2><p>Możesz udostępnić lub wstrzymać niezajęte miejsca w rzędach 6–7. Rzędy 1–5 pozostają w puli organizacyjnej. Oferty dla listy rezerwowej wysyła zadanie dzienne.</p><div id="poolButtons"></div></section><p id="status" role="status"></p><p id="summary"></p>
+<section id="pools" hidden><h2>Ostatnie miejsca</h2><p>Możesz udostępnić lub wstrzymać niezajęte miejsca w rzędach 6–7. Rzędy 1–5 pozostają w puli organizacyjnej. Zwolnione miejsca obsługuje automatyczna kolejka.</p><div id="poolButtons"></div></section><label>Pokaż pulę: <select id="admissionFilter"><option value="all">Wszystkie zgłoszenia</option><option value="seated">Fotele</option><option value="standing">Bez gwarancji fotela</option><option value="waiting">Lista rezerwowa</option></select></label><p id="status" role="status"></p><p id="summary"></p>
 <button id="export" hidden>Eksport CSV</button><button id="refresh" hidden>Odśwież</button>
-<section><table id="table" hidden><thead><tr><th>Data</th><th>Nazwisko</th><th>E-mail</th><th>Telefon</th><th>Osoby</th><th>Miejsca</th><th>Status</th><th>Działania</th></tr></thead><tbody></tbody></table></section>
+<section><table id="table" hidden><thead><tr><th>Data</th><th>Nazwisko</th><th>E-mail</th><th>Telefon</th><th>Osoby</th><th>Miejsca</th><th>Pula</th><th>Status</th><th>Działania</th></tr></thead><tbody></tbody></table></section>
 </main><script>
-let key='',rows=[];const status=document.getElementById('status');
+let key='',rows=[];
+const kindLabel=k=>({seated:'Fotele',standing:'Bez gwarancji fotela',waiting:'Lista rezerwowa'}[k]||k);
+document.getElementById('admissionFilter').onchange=load;const status=document.getElementById('status');
 document.getElementById('auth').onsubmit=e=>{e.preventDefault();key=document.getElementById('key').value;load()};
 document.getElementById('refresh').onclick=load;
 async function load(){
@@ -20,17 +22,23 @@ async function load(){
     for(const s of d.seats.filter(s=>s.pool!=='organizational')){const b=document.createElement('button');b.textContent='Rząd '+s.row_no+', m. '+s.seat_no+': '+(s.taken?'zajęte':s.pool==='held'?'udostępnij':'wstrzymaj');b.disabled=s.taken;
     b.onclick=async()=>{if(!confirm(b.textContent+'?'))return;b.disabled=true;try{const r=await fetch('/api/admin',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({action:'pool',id:s.id,pool:s.pool==='held'?'public':'held'})});if(!r.ok)throw Error('Nie udało się zmienić puli.');await load();}catch(e){status.textContent=e.message;b.disabled=false;}};pools.append(b);}document.getElementById('table').hidden=false;
     document.getElementById('export').hidden=false;document.getElementById('refresh').hidden=false;
-    const counts={};for(const row of rows)counts[row.status]=(counts[row.status]||0)+Number(row.seats);
-    document.getElementById('summary').textContent='Pula publiczna: '+d.config.public_capacity+' · Rezerwacja: '+((counts.verification||0)+(counts.reserved||0))+' · Potwierdzone: '+(counts.confirmed||0)+' · Oczekujące na przyjęcie propozycji: '+(counts.offered||0)+' · Lista rezerwowa: '+(counts.waiting||0)+' · Zaproszenia specjalne: osobna lista, do '+d.config.guest_capacity+'.';
+    const active=r=>['verification','reserved','confirmed','offered'].includes(r.status);
+    const seated=rows.filter(r=>active(r)&&r.admission==='seated').reduce((n,r)=>n+Number(r.seats),0);
+    const waitingCount=rows.filter(r=>r.admission==='waiting'&&r.status==='waiting').reduce((n,r)=>n+Number(r.seats),0);
+    document.getElementById('summary').textContent='Fotele publiczne: '+seated+' / '+d.config.public_capacity+
+     ' · Bez gwarancji fotela: '+d.config.standing_used+' / '+d.config.standing_capacity+
+     ' · Lista rezerwowa: '+waitingCount+' osób · Pula organizacyjna: '+d.config.guest_capacity+'. Oferty zwolnionych foteli otrzymują najpierw zweryfikowane osoby bez foteli. Kolejka i wiadomości są obsługiwane automatycznie po zwolnieniu miejsc oraz przez zadanie dzienne.';
     const tbody=document.querySelector('tbody');tbody.replaceChildren();
     for(const row of rows){
+      const filter=document.getElementById('admissionFilter').value;
+      if(filter!=='all'&&row.admission!==filter)continue;
       const tr=document.createElement('tr');
-      for(const value of [new Date(row.created_at).toLocaleString('pl-PL'),row.name,row.email,row.phone,row.seats,(row.seat_ids||[]).join('; '),row.status]){
+      for(const value of [new Date(row.created_at).toLocaleString('pl-PL'),row.name,row.email,row.phone,row.seats,(row.seat_ids||[]).join('; '),kindLabel(row.admission)+(row.offer_target?' → oferta: '+kindLabel(row.offer_target):''),row.status]){
         const td=document.createElement('td');td.textContent=value;tr.append(td);
       }
       const actions=document.createElement('td');
-      for(const [label,action] of [['Potwierdź','confirm'],['Zaproponuj','offer'],['Anuluj','cancel']]){
-        if((action==='offer'&&(row.status!=='waiting'||!row.verified_at))||(action==='confirm'&&!['verification','reserved','offered'].includes(row.status))||(action==='cancel'&&['cancelled','expired'].includes(row.status)))continue;
+      for(const [label,action] of [['Potwierdź','confirm'],['Zaproponuj','offer'],['Anuluj i zwolnij','cancel'],['Anuluj i zablokuj fotele','cancel_hold']]){
+        if((action==='offer'&&(!row.verified_at||!(row.status==='waiting'||(row.admission==='standing'&&!row.upgrade_declined_at&&['reserved','confirmed'].includes(row.status)))))||(action==='confirm'&&!['verification','reserved','offered'].includes(row.status))||(['cancel','cancel_hold'].includes(action)&&['cancelled','expired'].includes(row.status))||(action==='cancel_hold'&&!(row.seat_ids||[]).length))continue;
         const b=document.createElement('button');b.textContent=label;
         b.onclick=async()=>{
           if(!confirm(label+' dla '+row.name+'?'))return;
@@ -48,7 +56,7 @@ async function load(){
   }catch(err){status.textContent=err.message}
 }
 document.getElementById('export').onclick=()=>{
-  const fields=['created_at','name','email','phone','seats','seat_ids','status','verified_at','reminder_sent_at','offer_expires_at'];
+  const fields=['created_at','name','email','phone','seats','seat_ids','admission','offer_target','status','verified_at','reminder_sent_at','offer_expires_at'];
   const csv=[fields.join(','),...rows.map(row=>fields.map(k=>{
     const raw=String(row[k]??'');
     return '"'+(/^[\s]*[=+@-]/.test(raw)?"'"+raw:raw).replaceAll('"','""')+'"';

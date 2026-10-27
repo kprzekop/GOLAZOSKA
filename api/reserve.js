@@ -1,3 +1,4 @@
+import {advanceQueue} from '../lib/queue.js';
 import {applySeatPolicy} from '../lib/seat-policy.js';
 import {json,sql,sendMail,actionMail} from '../lib/shared.js';
 import {validateBooking,isReservationPeriod} from '../lib/event.js';
@@ -9,7 +10,7 @@ export default async function handler(req,res){
  const body=req.body||{};
  if(body.website)return json(res,400,{error:'INVALID_INPUT'});
  let input;
- try{input=validateBooking(body);}catch{return json(res,400,{error:'INVALID_INPUT'});}
+ try{input=validateBooking(body);if(input.waiting&&body.acceptStanding!==true)throw Error('INVALID_INPUT');}catch{return json(res,400,{error:'INVALID_INPUT'});}
  try{
   const challenge=String(body['cf-turnstile-response']||'');
   if(!challenge||challenge.length>2048)return json(res,400,{error:'CHALLENGE'});
@@ -21,15 +22,17 @@ export default async function handler(req,res){
    return json(res,400,{error:'CHALLENGE'});
   const {name,email,phone,seatIds,seats,waiting}=input,db=sql();
   await applySeatPolicy(db);
+  await advanceQueue(db);
   const [row]=await db`SELECT * FROM premiere_create(${name},${email},${phone},${seatIds}::text[],${seats},${waiting})`;
+  const [details]=await db`SELECT admission FROM premiere_reservations WHERE id=${row.booking_id}::uuid`;
   try{
-   await sendMail(email,waiting?'Potwierdź adres – lista rezerwowa Goła Zośka':'Potwierdź adres – Goła Zośka 1812',
-    actionMail(name,seats,row.booking_token,waiting,seatIds));
+   await sendMail(email,details.admission==='waiting'?'Potwierdź adres – lista rezerwowa Goła Zośka':details.admission==='standing'?'Potwierdź wejście bez gwarancji fotela – Goła Zośka':'Potwierdź adres – Goła Zośka 1812',
+    actionMail(name,seats,row.booking_token,details.admission==='waiting',seatIds,details.admission));
   }catch{
    await db`SELECT * FROM premiere_action(${row.booking_token}::uuid,'cancel')`;
    return json(res,503,{error:'MAIL_UNAVAILABLE'});
   }
-  return json(res,200,{status:row.booking_status});
+  return json(res,200,{status:row.booking_status,admission:details.admission});
  }catch(e){
   for(const [code,status]of [['DUPLICATE',409],['SEATS_UNAVAILABLE',409],['INVALID_INPUT',400],['CLOSED',503]])
    if(String(e.message).includes(code))return json(res,status,{error:code});

@@ -29,9 +29,9 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
  <div class="screen">EKRAN</div><div id="seatmap" class="seatmap" role="group" aria-label="Plan sali"></div>
  <p class="legend">Zielone: wolne · złote: Twój wybór · szare: zajęte · fioletowe: pula organizatora · brązowe: dostępne później.</p>
  <p id="selected" aria-live="polite">Nie wybrano miejsc.</p><button id="reload" type="button">Odśwież plan</button>
- <label class="inline"><input id="waiting" type="checkbox">Chcę zapisać się na listę rezerwową zamiast wybierać miejsca.</label>
- <p class="muted">Lista rezerwowa nie gwarantuje wejścia. Po zwolnieniu miejsc wyślemy ofertę z przydzielonymi fotelami; możesz ją przyjąć lub anulować.</p>
- <div id="waitCount" class="hidden"><label for="seats">Liczba miejsc na liście rezerwowej</label><select id="seats" name="seats"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+ <label class="inline"><input id="waiting" type="checkbox">Wybieram wejście bez gwarancji fotela / listę rezerwową zamiast wyboru foteli.</label>
+ <p class="muted">Przyjmujemy do 20 osób bez gwarancji fotela — udział może odbyć się na stojąco. Po wyczerpaniu tej puli kolejne grupy trafiają na listę rezerwową, która nie uprawnia do wejścia. Grupy liczymy w osobach i nie rozdzielamy. Osoby bez foteli mają pierwszeństwo do zwolnionych miejsc siedzących. Przydział i terminy otrzymasz w e-mailu.</p>
+ <p id="overflowAvailability" class="muted"></p><div id="waitCount" class="hidden"><label for="seats">Liczba osób bez przypisanego fotela</label><select id="seats" name="seats"><option>1</option><option>2</option><option>3</option><option>4</option></select><label class="inline"><input id="standingConsent" type="checkbox">Rozumiem, że wejście z puli 20 osób nie gwarantuje fotela i mogę uczestniczyć na stojąco. Dalsza lista rezerwowa nie gwarantuje wejścia.</label></div>
  <label for="name">Imię i nazwisko</label><input id="name" name="name" maxlength="120" minlength="2" required autocomplete="name">
  <label for="email">Adres e-mail</label><input id="email" name="email" type="email" maxlength="254" required autocomplete="email">
  <label for="phone">Numer telefonu</label><input id="phone" name="phone" type="tel" maxlength="25" required autocomplete="tel" placeholder="np. 600 123 456">
@@ -46,6 +46,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 const form=document.getElementById('form'),message=document.getElementById('message'),availability=document.getElementById('availability');
 const selected=new Set(),waiting=document.getElementById('waiting'),map=document.getElementById('seatmap');
 let seatData=[],widget;
+function setWaiting(){selected.clear();document.getElementById('waitCount').classList.toggle('hidden',!waiting.checked);document.getElementById('standingConsent').required=waiting.checked;render();}
 const normalize=v=>v.replace(/[\s()-]/g,'').replace(/^00/,'+');
 function render(){
  map.replaceChildren();
@@ -79,28 +80,34 @@ async function load(){
   }
   return;
  }
+ document.getElementById('overflowAvailability').textContent=d.overflow?'Pozostało '+d.overflow.available+' z '+d.overflow.capacity+' wejść bez gwarancji fotela. Gdy cała grupa nie mieści się w tej puli, trafi na listę rezerwową.':'';
+ if(d.waitlist&&!selected.size){waiting.checked=true;setWaiting();}
  seatData=d.seats;for(const id of selected)if(!seatData.some(s=>s.id===id&&s.status==='available'))selected.delete(id);
- render();form.classList.remove('hidden');availability.textContent=d.waitlist?'Wszystkie udostępnione miejsca są zajęte. Możesz zapisać się na listę rezerwową.':'Wybierz miejsca na planie sali.';
+ render();form.classList.remove('hidden');availability.textContent=d.waitlist?'Wszystkie udostępnione fotele są zajęte. Możesz zgłosić wejście bez gwarancji fotela lub na dalszą listę rezerwową.':'Wybierz miejsca na planie sali.';
  if(!document.getElementById('turnstile-script')){
   const s=document.createElement('script');s.id='turnstile-script';s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
   s.onload=()=>{widget=window.turnstile.render('#challenge',{sitekey:d.siteKey,theme:'dark'});};document.head.append(s);
  }
 }
-waiting.onchange=()=>{selected.clear();document.getElementById('waitCount').classList.toggle('hidden',!waiting.checked);render();};
+waiting.onchange=setWaiting;
 document.getElementById('reload').onclick=()=>load().catch(e=>message.textContent=e.message);
 form.addEventListener('submit',async e=>{
  e.preventDefault();message.textContent='';
  const p=normalize(document.getElementById('phone').value),repeat=normalize(document.getElementById('phoneRepeat').value);
  if(!/^\+?[0-9]{9,15}$/.test(p)||p!==repeat){message.textContent='Wpisz poprawny numer telefonu identycznie w obu polach.';return;}
+ if(waiting.checked&&!document.getElementById('standingConsent').checked){message.textContent='Potwierdź zasady wejścia bez gwarancji fotela i listy rezerwowej.';return;}
  if(!waiting.checked&&!selected.size){message.textContent='Wybierz przynajmniej jedno miejsce.';return;}
  const button=document.getElementById('submit');button.disabled=true;
  try{
-  const body={...Object.fromEntries(new FormData(form)),seatIds:[...selected],waiting:waiting.checked};
+  const body={...Object.fromEntries(new FormData(form)),seatIds:[...selected],waiting:waiting.checked,acceptStanding:document.getElementById('standingConsent').checked};
   const r=await fetch('/api/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();
   const errors={DUPLICATE:'Ten e-mail ma już aktywne zgłoszenie. Sprawdź skrzynkę.',SEATS_UNAVAILABLE:'Ktoś właśnie zarezerwował wybrane miejsca. Wybierz inne na odświeżonym planie.',CHALLENGE:'Potwierdź zabezpieczenie formularza.',INVALID_INPUT:'Sprawdź dane i zgodność obu numerów telefonu.',MAIL_UNAVAILABLE:'Nie udało się wysłać wiadomości. Zgłoszenie zostało anulowane; spróbuj ponownie.'};
   if(!r.ok){if(d.error==='SEATS_UNAVAILABLE')await load();throw Error(errors[d.error]||'Nie udało się przyjąć zgłoszenia. Spróbuj później.');}
   form.classList.add('hidden');availability.textContent='';
-  message.textContent=d.status==='waiting'?'Sprawdź e-mail i potwierdź adres w ciągu 24 godzin, aby zachować zgłoszenie na liście rezerwowej.':'Sprawdź e-mail i potwierdź adres w ciągu 24 godzin, najpóźniej do wskazanego terminu. Bez potwierdzenia miejsca zostaną zwolnione.';
+  message.textContent=d.admission==='waiting'
+   ?'Zgłoszenie na listę rezerwową przyjęte. Nie gwarantuje wejścia. Potwierdź e-mail w ciągu 24 godzin; jeśli pojawi się oferta, wyślemy ją osobno.'
+   :d.admission==='standing'?'Przyjęto zgłoszenie wejścia bez gwarancji fotela — udział może odbyć się na stojąco. Potwierdź e-mail w ciągu 24 godzin i później udział do 18 listopada godz. 19:00 zgodnie z wiadomością.'
+   :'Sprawdź e-mail i potwierdź adres w ciągu 24 godzin, najpóźniej do wskazanego terminu. Bez potwierdzenia miejsca zostaną zwolnione.';
  }catch(err){message.textContent=err.message;window.turnstile?.reset(widget);}
  finally{button.disabled=false;}
 });

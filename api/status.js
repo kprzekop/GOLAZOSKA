@@ -1,3 +1,4 @@
+import {advanceQueue} from '../lib/queue.js';
 import {applySeatPolicy} from '../lib/seat-policy.js';
 import {json,sql} from '../lib/shared.js';
 import {RESERVATIONS_START,isReservationPeriod} from '../lib/event.js';
@@ -8,13 +9,17 @@ export default async function handler(req,res){
  process.env.RESERVATIONS_OPEN!=='true')return json(res,200,{open:false});
  try{
   const db=sql(),seatPools=await applySeatPolicy(db);
-  if(!isReservationPeriod())return json(res,200,{open:false,seatPools,
+  await db`SELECT premiere_expire()`;
+  const [standing]=await db`SELECT standing_capacity AS capacity,standing_capacity-premiere_standing_used() AS available FROM premiere_config WHERE id=1`;
+  const overflow={capacity:Number(standing.capacity),available:Number(standing.available)};
+  if(!isReservationPeriod())return json(res,200,{open:false,seatPools,overflow,
    ...(new Date()<new Date(RESERVATIONS_START)?{opensAt:RESERVATIONS_START}:{} )});
   await db`SELECT premiere_expire()`;
+  await advanceQueue(db);
   const seats=await db`SELECT id,row_no,seat_no,pool,(reservation_id IS NOT NULL) AS taken FROM premiere_seats ORDER BY row_no,seat_no`;
   if(seats.length!==83)return json(res,503,{open:false});
   const map=seats.map(s=>({id:s.id,row:s.row_no,number:s.seat_no,
    status:s.pool==='organizational'?'organizational':s.pool==='held'?'held':s.taken?'taken':'available'}));
-  return json(res,200,{open:true,seatPools,siteKey:process.env.TURNSTILE_SITE_KEY,waitlist:!map.some(s=>s.status==='available'),seats:map});
+  return json(res,200,{open:true,seatPools,overflow,siteKey:process.env.TURNSTILE_SITE_KEY,waitlist:!map.some(s=>s.status==='available'),seats:map});
  }catch{return json(res,503,{open:false});}
 }
