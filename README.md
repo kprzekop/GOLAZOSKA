@@ -4,7 +4,7 @@ Kod obejmuje wybór numerowanych miejsc, weryfikację e-maila, obowiązkowy tele
 
 ## Otwarcie zapisów
 
-Zapisy są zaplanowane na **5 listopada 2026 o godz. 00:00 Europe/Warsaw** (4 listopada 23:00 UTC). Obie publiczne funkcje sprawdzają czas serwera: przed startem formularz i bezpośrednie żądania rezerwacji pozostają zamknięte. Strona filmu i formularz podają datę rozpoczęcia. RESERVATIONS_OPEN=true oznacza uzbrojenie harmonogramu; false nadal umożliwia ręczne zamknięcie. Nie jest potrzebne zadanie dzienne, aktywny komputer ani nowe wdrożenie w dniu startu. Panel organizatora i obsługa wcześniejszych zgłoszeń pozostają dostępne.
+Zapisy są zaplanowane na **5 listopada 2026 o godz. 18:00 Europe/Warsaw** (5 listopada 17:00 UTC). Obie publiczne funkcje sprawdzają czas serwera: przed startem formularz i bezpośrednie żądania rezerwacji pozostają zamknięte. Strona filmu i formularz podają datę rozpoczęcia. RESERVATIONS_OPEN=true oznacza uzbrojenie harmonogramu; false nadal umożliwia ręczne zamknięcie. Nie jest potrzebne zadanie dzienne, aktywny komputer ani nowe wdrożenie w dniu startu. Panel organizatora i obsługa wcześniejszych zgłoszeń pozostają dostępne.
 
 ## Wydarzenie i miejsca
 
