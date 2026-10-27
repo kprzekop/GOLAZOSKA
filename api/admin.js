@@ -1,14 +1,15 @@
+import {applySeatPolicy} from '../lib/seat-policy.js';
 import {json,sql,isAdmin} from '../lib/shared.js';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export default async function handler(req,res){
  if(!isAdmin(req))return json(res,401,{error:'UNAUTHORIZED'});
  if(!['GET','POST'].includes(req.method))return json(res,405,{error:'METHOD'});
  try{
-  const db=sql();await db`SELECT premiere_expire()`;
+  const db=sql();await applySeatPolicy(db);await db`SELECT premiere_expire()`;
   if(req.method==='POST'){
    const {id,action,pool}=req.body||{};
    if(action==='pool'){
-    if(typeof id!=='string'||!/^([5-7])-([1-9]|1[0-3])$/.test(id)||!['held','public'].includes(pool))
+    if(typeof id!=='string'||!/^([6-7])-([1-9]|1[0-3])$/.test(id)||!['held','public'].includes(pool))
      return json(res,400,{error:'INVALID_INPUT'});
     await db`SELECT premiere_set_pool(${id},${pool})`;return json(res,200,{ok:true});
    }
