@@ -22,14 +22,28 @@ async function call(handler,method='GET',body={},query={},auth=''){
 }
 const data={name:'Jan Kowalski',email:'widz@example.com',phone:'600 123 456',phoneRepeat:'600123456',seatIds:['5-1','5-2'],'cf-turnstile-response':'test'};
 test('API: formularz → baza → e-mail → weryfikacja → panel → anulowanie',async()=>{
- mock.timers.enable({apis:['Date'],now:new Date('2026-10-27T12:00:00+01:00')});
- db=new PGlite();await db.exec(schema.replaceAll('now()',"'2026-10-27 12:00+01'::timestamptz"));const fetchBefore=globalThis.fetch;
+ mock.timers.enable({apis:['Date'],now:new Date('2026-11-06T12:00:00+01:00')});
+ db=new PGlite();await db.exec(schema.replaceAll('now()',"'2026-11-06 12:00+01'::timestamptz"));const fetchBefore=globalThis.fetch;
  Object.assign(process.env,{DATABASE_URL:'postgres://unused',RESEND_API_KEY:'test',MAIL_FROM:'test@example.com',
  TURNSTILE_SITE_KEY:'test',TURNSTILE_SECRET_KEY:'test',TURNSTILE_HOSTNAME:'www.golazoska.com',RESERVATIONS_OPEN:'true',ADMIN_TOKEN:'admin-test',CRON_SECRET:'cron-test'});
  globalThis.fetch=async()=>({json:async()=>({success:true,hostname:'www.golazoska.com'})});
  try{
   process.env.RESERVATIONS_OPEN='false';assert.equal((await call(status)).body.open,false);
   process.env.RESERVATIONS_OPEN='true';
+  mock.timers.setTime(new Date('2026-11-04T23:59:59+01:00').getTime());
+  const closed=await call(status);
+  assert.equal(closed.body.open,false);
+  assert.equal(closed.body.opensAt,'2026-11-05T00:00:00+01:00');
+  assert.equal(closed.body.seats,undefined);
+  assert.equal((await call(reserve,'POST',data)).body.error,'CLOSED');
+  assert.equal(mails.length,0);
+  mock.timers.setTime(new Date('2026-11-05T00:00:00+01:00').getTime());
+  assert.equal((await call(status)).body.open,true);
+  process.env.RESERVATIONS_OPEN='false';
+  assert.equal((await call(status)).body.open,false);
+  assert.equal((await call(reserve,'POST',data)).body.error,'CLOSED');
+  process.env.RESERVATIONS_OPEN='true';
+  mock.timers.setTime(new Date('2026-11-06T12:00:00+01:00').getTime());
   const s=await call(status);assert.equal(s.body.seats.length,83);assert.equal(s.body.seats.filter(s=>s.status==='available').length,27);
   assert.equal((await call(admin)).code,401);assert.equal((await call(cron)).code,401);
   assert.equal((await call(reserve,'POST',{...data,phoneRepeat:'600123457'})).code,400);

@@ -69,7 +69,15 @@ function render(){
 async function load(){
  const r=await fetch('/api/status'),d=await r.json();
  if(!r.ok)throw Error('Nie można teraz sprawdzić miejsc. Spróbuj później.');
- if(!d.open){form.classList.add('hidden');availability.textContent='Zapisy są obecnie zamknięte.';return;}
+ if(!d.open){
+  form.classList.add('hidden');
+  availability.textContent=d.opensAt?'Rezerwacje ruszają 5 listopada 2026 o godz. 00:00. Zapraszamy!':'Zapisy są obecnie zamknięte.';
+  if(d.opensAt){
+   const delay=new Date(d.opensAt).getTime()-Date.now();
+   if(delay>0)setTimeout(()=>load().catch(e=>availability.textContent=e.message),Math.min(delay+1000,2147483647));
+  }
+  return;
+ }
  seatData=d.seats;for(const id of selected)if(!seatData.some(s=>s.id===id&&s.status==='available'))selected.delete(id);
  render();form.classList.remove('hidden');availability.textContent=d.waitlist?'Wszystkie udostępnione miejsca są zajęte. Możesz zapisać się na listę rezerwową.':'Wybierz miejsca na planie sali.';
  if(!document.getElementById('turnstile-script')){

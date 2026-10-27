@@ -2,6 +2,10 @@
 
 Kod obejmuje wybór numerowanych miejsc, weryfikację e-maila, obowiązkowy telefon wpisany dwukrotnie (bez SMS), ponowne potwierdzenie udziału, listę rezerwową i panel organizatora. Zapisy pozostają zamknięte, dopóki nie zostaną skonfigurowane usługi i wykonany test dostarczenia prawdziwego e-maila.
 
+## Otwarcie zapisów
+
+Zapisy są zaplanowane na **5 listopada 2026 o godz. 00:00 Europe/Warsaw** (4 listopada 23:00 UTC). Obie publiczne funkcje sprawdzają czas serwera: przed startem formularz i bezpośrednie żądania rezerwacji pozostają zamknięte. Strona filmu i formularz podają datę rozpoczęcia. RESERVATIONS_OPEN=true oznacza uzbrojenie harmonogramu; false nadal umożliwia ręczne zamknięcie. Nie jest potrzebne zadanie dzienne, aktywny komputer ani nowe wdrożenie w dniu startu. Panel organizatora i obsługa wcześniejszych zgłoszeń pozostają dostępne.
+
 ## Wydarzenie i miejsca
 
 21 listopada 2026, godz. 19:00, sala widowiskowa MDK, Rynek Zygmunta Augusta 9, wejście od ul. Kościelnej, II piętro. Strefa czasowa: Europe/Warsaw.
@@ -40,7 +44,7 @@ Zadanie Vercel działa raz dziennie o 18:00 UTC, czyli **19:00 w Polsce w listop
 4. Utwórz mocne, niezależne ADMIN_TOKEN i CRON_SECRET. Ten pierwszy chroni /organizator.html, drugi /api/cron. Zostaw RESERVATIONS_OPEN=false. Sekrety wpisuj w panelu Vercela; nie dodawaj ich do repozytorium ani rozmowy.
 5. Sprawdź informację prywatności: administrator Krzysztof Przekop, kontakt rezerwacje@golazoska.com. Proponowany termin retencji: 21 grudnia 2026; zadanie od 22 grudnia usuwa dane z aktywnej bazy. Administrator usuwa osobno eksporty CSV i sprawdza retencję dostawców oraz zasady przekazywania danych po wyborze konkretnych usług.
 6. Wykonaj test prawdziwego zapisu w osobnym środowisku z osobną bazą i kluczami: odbiór e-maila, kliknięcie, widok miejsc, anulowanie, telefon, konflikt rezerwacji, panel i lista rezerwowa. Sprawdź zadanie dzienne oraz dostarczanie i odbicia e-maili w Resend. Testy automatyczne używają atrapy wysyłki – nie potwierdzają dostarczalności.
-7. Dopiero po testach ustaw RESERVATIONS_OPEN=true w produkcji i wdroż zmianę. /api/status musi zwrócić open:true i plan 83 foteli.
+7. Po testach ustaw RESERVATIONS_OPEN=true w produkcji i wdroż zmianę. Przed 5 listopada /api/status zwróci open:false i opensAt; od zaplanowanego startu zwróci open:true i plan 83 foteli.
 
 ## Obsługa organizatora
 

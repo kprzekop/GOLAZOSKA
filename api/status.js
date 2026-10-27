@@ -1,10 +1,12 @@
 import {json,sql} from '../lib/shared.js';
-import {EVENT_AT} from '../lib/event.js';
+import {RESERVATIONS_START,isReservationPeriod} from '../lib/event.js';
 export default async function handler(req,res){
  if(req.method!=='GET')return json(res,405,{error:'METHOD'});
  if(!process.env.DATABASE_URL||!process.env.RESEND_API_KEY||!process.env.MAIL_FROM||
  !process.env.TURNSTILE_SITE_KEY||!process.env.TURNSTILE_SECRET_KEY||
- process.env.RESERVATIONS_OPEN!=='true'||new Date()>=new Date(EVENT_AT))return json(res,200,{open:false});
+ process.env.RESERVATIONS_OPEN!=='true')return json(res,200,{open:false});
+ if(!isReservationPeriod())return json(res,200,{open:false,
+  ...(new Date()<new Date(RESERVATIONS_START)?{opensAt:RESERVATIONS_START}:{} )});
  try{
   const db=sql();await db`SELECT premiere_expire()`;
   const seats=await db`SELECT id,row_no,seat_no,pool,(reservation_id IS NOT NULL) AS taken FROM premiere_seats ORDER BY row_no,seat_no`;

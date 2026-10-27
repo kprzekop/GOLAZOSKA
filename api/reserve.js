@@ -1,8 +1,8 @@
 import {json,sql,sendMail,actionMail} from '../lib/shared.js';
-import {validateBooking,EVENT_AT} from '../lib/event.js';
+import {validateBooking,isReservationPeriod} from '../lib/event.js';
 export default async function handler(req,res){
  if(req.method!=='POST')return json(res,405,{error:'METHOD'});
- if(process.env.RESERVATIONS_OPEN!=='true'||new Date()>=new Date(EVENT_AT))return json(res,503,{error:'CLOSED'});
+ if(process.env.RESERVATIONS_OPEN!=='true'||!isReservationPeriod())return json(res,503,{error:'CLOSED'});
  if(!process.env.DATABASE_URL||!process.env.RESEND_API_KEY||!process.env.MAIL_FROM||!process.env.TURNSTILE_SECRET_KEY)
  return json(res,503,{error:'UNAVAILABLE'});
  const body=req.body||{};
