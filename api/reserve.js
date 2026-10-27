@@ -1,3 +1,4 @@
+import {applySeatPolicy} from '../lib/seat-policy.js';
 import {json,sql,sendMail,actionMail} from '../lib/shared.js';
 import {validateBooking,isReservationPeriod} from '../lib/event.js';
 export default async function handler(req,res){
@@ -19,6 +20,7 @@ export default async function handler(req,res){
   if(!v.success||v.hostname!==(process.env.TURNSTILE_HOSTNAME||'www.golazoska.com'))
    return json(res,400,{error:'CHALLENGE'});
   const {name,email,phone,seatIds,seats,waiting}=input,db=sql();
+  await applySeatPolicy(db);
   const [row]=await db`SELECT * FROM premiere_create(${name},${email},${phone},${seatIds}::text[],${seats},${waiting})`;
   try{
    await sendMail(email,waiting?'Potwierdź adres – lista rezerwowa Goła Zośka':'Potwierdź adres – Goła Zośka 1812',

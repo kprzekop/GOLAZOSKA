@@ -16,11 +16,11 @@ Zapisy są zaplanowane na **5 listopada 2026 o godz. 18:00 Europe/Warsaw** (5 li
 | 2 | 13 | organizacyjna |
 | 3 | 12 | organizacyjna |
 | 4 | 13 | organizacyjna |
-| 5 | 12 | 1–10 dostępne; 11–12 wstrzymane |
+| 5 | 12 | organizacyjna |
 | 6 | 13 | 1–11 dostępne; 12–13 wstrzymane |
 | 7 | 8 | 1–6 dostępne; 7–8 wstrzymane |
 
-Łącznie 83 miejsca: 50 organizacyjnych, 27 dostępnych na początku, 6 do późniejszego wypuszczenia. Rząd 1 jest przy ekranie. Przyjęta numeracja na planie: od lewej do prawej, patrząc w stronę ekranu; organizator powinien sprawdzić ją względem numerów foteli przed otwarciem zapisów.
+Łącznie 83 miejsca: 62 organizacyjnych, 17 dostępnych na początku, 4 do późniejszego wypuszczenia. Rząd 1 jest przy ekranie. Przyjęta numeracja na planie: od lewej do prawej, patrząc w stronę ekranu; organizator powinien sprawdzić ją względem numerów foteli przed otwarciem zapisów.
 
 W jednym zgłoszeniu 1–4 miejsca, jeden aktywny zapis na e-mail. Ta sama blokada w bazie obejmuje wszystkie przydziały i zmiany puli, chroniąc przed podwójną rezerwacją. Wybrane miejsce zostaje zablokowane dopiero po przyjęciu formularza, nie po kliknięciu na planie. Konflikt wymaga ponownego wyboru.
 
@@ -46,11 +46,15 @@ Zadanie Vercel działa raz dziennie o 18:00 UTC, czyli **19:00 w Polsce w listop
 6. Wykonaj test prawdziwego zapisu w osobnym środowisku z osobną bazą i kluczami: odbiór e-maila, kliknięcie, widok miejsc, anulowanie, telefon, konflikt rezerwacji, panel i lista rezerwowa. Sprawdź zadanie dzienne oraz dostarczanie i odbicia e-maili w Resend. Testy automatyczne używają atrapy wysyłki – nie potwierdzają dostarczalności.
 7. Po testach ustaw RESERVATIONS_OPEN=true w produkcji i wdroż zmianę. Przed 5 listopada /api/status zwróci open:false i opensAt; od zaplanowanego startu zwróci open:true i plan 83 foteli.
 
+## Dodatkowa pula organizacyjna
+
+Cały rząd 5 został wyłączony z zapisów. Przy pierwszym odczycie statusu lub panelu backend stosuje transakcyjną migrację z lib/seat-policy.js; db/allocate-row-five.sql zawiera jej wersję do ręcznego wykonania. Na nowej bazie po db/schema.sql należy również zastosować tę migrację lub wykonać pierwszy odczyt przez backend. Migracja aktualizuje pule do 62 organizacyjnych, 17 publicznych i 4 wstrzymanych, zachowując pozostałe ręczne zmiany puli. Jeśli w rzędzie 5 jest aktywna rezerwacja, operacja jest przerywana bez anulowania zgłoszeń i wymaga ręcznego uzgodnienia. Panel nie pozwala ponownie udostępnić foteli organizacyjnych.
+
 ## Obsługa organizatora
 
 /organizator.html pokazuje nazwisko, e-mail, telefon, liczbę osób, konkretne miejsca i status. Eksport CSV zabezpiecza pola zaczynające się od znaków formuł arkusza. Klucz panelu jest trzymany tylko w pamięci strony.
 
-Przyciski przy fotelach w rzędach 5–7 pozwalają udostępnić lub wstrzymać wolne miejsce. Zajętych foteli i puli organizacyjnej nie można w ten sposób przenieść. Zmiany są zapisywane w bazie i od razu widoczne przy odświeżeniu planu. Rzędy 1–4 obsługuj na osobnej liście organizacyjnej.
+Przyciski przy fotelach w rzędach 6–7 pozwalają udostępnić lub wstrzymać wolne miejsce. Zajętych foteli i puli organizacyjnej nie można w ten sposób przenieść. Zmiany są zapisywane w bazie i od razu widoczne przy odświeżeniu planu. Rzędy 1–5 obsługuj na osobnej liście organizacyjnej.
 
 Ręczna propozycja dla zweryfikowanej listy rezerwowej przydziela fotele, a wiadomość wyśle zadanie dzienne. Potwierdzenie i anulowanie są dostępne dla odpowiednich statusów.
 

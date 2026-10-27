@@ -1,3 +1,4 @@
+import {applySeatPolicy} from '../lib/seat-policy.js';
 import {json,sql,sendMail,confirmUrl,tokenValid,escapeHtml} from '../lib/shared.js';
 import {EVENT_AT,REMIND_FROM,CONFIRM_BY,EVENT_DESCRIPTION,DEADLINE_LABEL,seatLabel} from '../lib/event.js';
 export default async function handler(req,res){
@@ -7,6 +8,7 @@ export default async function handler(req,res){
  if(!process.env.DATABASE_URL||!process.env.RESEND_API_KEY||!process.env.MAIL_FROM)return json(res,503,{error:'UNAVAILABLE'});
  const db=sql(),now=new Date();let promoted=0,sent=0,failed=0;
  try{
+  await applySeatPolicy(db);
   await db`SELECT premiere_expire()`;
   if(now>=new Date('2026-12-22T00:00:00+01:00')){
    await db`UPDATE premiere_seats SET reservation_id=NULL WHERE reservation_id IS NOT NULL`;
