@@ -138,6 +138,7 @@ test('automatyczny obieg: rezygnacja, oferta fotela, uzupełnienie puli 20 i blo
   async function add(n,ids=[]){
    const [r]=(await db.query('SELECT * FROM premiere_create($1,$2,$3,$4::text[],$5,$6)',
     ['Jan Kowalski','queue'+(++seq)+'@example.com','600123456',ids,n,ids.length===0])).rows;
+   await db.query("UPDATE premiere_reservations SET created_at='2026-11-15 12:00+01'::timestamptz + $2 * interval '1 second' WHERE id=$1",[r.booking_id,seq]);
    await db.query("SELECT * FROM premiere_action($1,'confirm')",[r.booking_token]);return r;
   }
   const holder=await add(1,['6-1']);
