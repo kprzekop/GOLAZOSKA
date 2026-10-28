@@ -111,7 +111,7 @@ async function load(){
  if(!r.ok)throw Error('Nie można teraz sprawdzić miejsc. Spróbuj później.');
  if(!d.open){
   form.classList.add('hidden');
-  availability.textContent=d.opensAt?'Rezerwacje ruszają 5 listopada 2026 o godz. 18:00. Zapraszamy!':'Zapisy są obecnie zamknięte.';
+  availability.textContent=d.opensAt?'Zapisy ruszają 5 listopada o godzinie 16:00.':'Zapisy są obecnie zamknięte.';
   if(d.opensAt){
    const delay=new Date(d.opensAt).getTime()-Date.now();
    if(delay>0)setTimeout(()=>load().catch(e=>availability.textContent=e.message),Math.min(delay+1000,2147483647));

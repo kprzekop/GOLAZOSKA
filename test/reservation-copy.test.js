@@ -6,7 +6,7 @@ const html=await readFile(new URL('../rezerwacje.html',import.meta.url),'utf8');
 async function page({open=true,available=20,free=true,now='2026-11-06T12:00:00+01:00'}={}){
  const dom=new JSDOM(html,{url:'https://www.golazoska.com/rezerwacje.html',runScripts:'dangerously',beforeParse(w){
   const RealDate=w.Date;w.Date=class extends RealDate{constructor(...a){super(...(a.length?a:[now]));}static now(){return new RealDate(now).getTime();}};
-  w.fetch=async()=>({ok:true,json:async()=>({open,opensAt:open?undefined:'2026-11-05T18:00:00+01:00',overflow:{capacity:20,available},siteKey:'test',seats:[{id:'6-1',row:6,number:1,status:free?'available':'taken'}]})});
+  w.fetch=async()=>({ok:true,json:async()=>({open,opensAt:open?undefined:'2026-11-05T16:00:00+01:00',overflow:{capacity:20,available},siteKey:'test',seats:[{id:'6-1',row:6,number:1,status:free?'available':'taken'}]})});
  }});
  await new Promise(r=>setTimeout(r,30));return dom;
 }
@@ -14,13 +14,14 @@ test('przed otwarciem zasady są widoczne, formularz i warianty ukryte',async()=
  const dom=await page({open:false,now:'2026-10-28T12:00:00+01:00'});try{
  const d=dom.window.document;assert.ok(d.getElementById('rules').textContent.includes('14 listopada'));
  assert.ok(d.getElementById('form').classList.contains('hidden'));
- assert.match(d.getElementById('availability').textContent,/5 listopada/);
+ assert.match(d.getElementById('availability').textContent,/5 listopada o godzinie 16:00/);
  }finally{dom.window.close();}
 });
 test('przy wolnych fotelach alternatywa jest schowana; pojawia się na życzenie',async()=>{
  const dom=await page();try{const d=dom.window.document;
  assert.ok(d.getElementById('alternativeChoice').classList.contains('hidden'));
  assert.equal(d.getElementById('standingConsent').required,false);
+ assert.doesNotMatch(d.getElementById('availability').textContent,/Zapisy ruszają/);
  d.getElementById('alternative').click();
  assert.ok(!d.getElementById('alternativeChoice').classList.contains('hidden'));
  assert.equal(d.getElementById('waiting').checked,true);
