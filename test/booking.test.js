@@ -116,7 +116,7 @@ test('formularz: plan, limit dwóch, konflikt miejsc i powtórzony telefon',asyn
   d.getElementById('form').dispatchEvent(new dom.window.Event('submit',{cancelable:true}));
   assert.equal(posted,null);assert.match(d.getElementById('message').textContent,/identycznie/);
   d.getElementById('phoneRepeat').value='600123456';d.getElementById('form').dispatchEvent(new dom.window.Event('submit',{cancelable:true}));
-  await new Promise(r=>setTimeout(r,30));assert.equal(posted.seatIds.length,4);
+  await new Promise(r=>setTimeout(r,30));assert.equal(posted.seatIds.length,2);
   assert.match(d.getElementById('message').textContent,/Ktoś właśnie/);dom.window.close();
  }finally{await db.close();}
 });
