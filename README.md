@@ -79,3 +79,13 @@ Przy pierwszym wywołaniu backendu lib/seat-policy.js stosuje transakcyjnie db/m
 Organizator polecił wdrożyć pulę 20 wejść jak po uzyskaniu zgody MDK; zadeklarował uzyskanie zgody do 30 października. Potwierdzenie ustaleń z salą pozostaje po stronie organizatora.
 
 Kolejka uruchamia się automatycznie po anulowaniu, potwierdzeniu oferty, odblokowaniu fotela, odczycie aktualnego statusu i panelu oraz w zadaniu dziennym. Wygaśnięcia bez aktywności na stronie są obsługiwane przez zadanie dzienne; przy ruchu na stronie są wykrywane przy następnym żądaniu. Powiadomienia ofertowe mają krótką blokadę wysyłki chroniącą przed równoległymi kopiami. W panelu „Anuluj i zwolnij” oddaje miejsca do kolejki, natomiast „Anuluj i zablokuj fotele” anuluje i wstrzymuje przypisane fotele w jednej transakcji, zanim kolejka może je przejąć.
+
+## Wejściówki QR i kontrola wejścia
+
+Po potwierdzeniu udziału system wysyła osobny kod QR dla każdej osoby w treści e-maila i załącznikach PNG. Strona /wejsciowki.html otwierana z prywatnego linku pozwala je wydrukować. Lista rezerwowa ani niepotwierdzone zgłoszenia nie otrzymują wejściówek. Kody pozostają te same po zmianie przydziału miejsca; system wysyła wtedy zaktualizowaną wiadomość. Nieudane wysyłki ponawia zadanie dzienne.
+
+Panel /kontrola.html działa przez HTTPS, pokazuje podgląd tylnego aparatu i skanuje QR (BarcodeDetector lub lokalny jsQR). Można też wpisać numer wejściówki lub wyszukać nazwisko/e-mail. Przycisk „Wpuść” atomowo zapisuje wykorzystanie kodu; drugi telefon dostaje „już wykorzystana”. Anulowanie zgłoszenia i koniec ważności blokują użycie. Wymagany internet; przed pokazem należy sprawdzić aparat i łączność na telefonach obsługi.
+
+Logowanie: ADMIN_TOKEN albo opcjonalny osobny CHECKIN_TOKEN (Secret, Production, po dodaniu wymagany redeploy). CHECKIN_TOKEN daje wyłącznie dostęp do kontroli, nie do panelu organizatora. Hasło pozostaje w pamięci bieżącej karty, bez localStorage. Wyszukiwanie danych jest chronione tym samym logowaniem.
+
+Migracja db/migrate-tickets.sql jest automatycznie stosowana przez lib/seat-policy.js. Tabela premiere_tickets jest usuwana kaskadowo wraz z danymi rezerwacji podczas zaplanowanego czyszczenia. W kodzie QR znajduje się wyłącznie losowy identyfikator wejściówki, odrębny od linku zarządzania rezerwacją. Weryfikacja wejścia sprawdza aktualną rezerwację w bazie. Ważność wejściówek kończy się o północy po pokazie, 22 listopada.
