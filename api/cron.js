@@ -14,7 +14,7 @@ export default async function handler(req,res){
   await db`SELECT premiere_expire()`;
   if(now>=new Date('2026-12-22T00:00:00+01:00')){
    await db`UPDATE premiere_seats SET reservation_id=NULL WHERE reservation_id IS NOT NULL`;
-   await db`DELETE FROM premiere_reservations`;return json(res,200,{purged:true});
+   await db`DELETE FROM premiere_reservations`;await db`DELETE FROM premiere_organizational_tickets`;return json(res,200,{purged:true});
   }
   if(now>=new Date(EVENT_AT))return json(res,200,{done:true});
   const queue=await advanceQueue(db);promoted=queue.promoted;sent=queue.sent;failed=queue.failed;

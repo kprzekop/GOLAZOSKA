@@ -91,3 +91,23 @@ test('ten sam kod po przyjęciu foteli; osobna aktualizacja e-maila, anulowanie 
  assert.equal(TICKET_SCHEMA,await readFile(new URL('../db/migrate-tickets.sql',import.meta.url),'utf8'));
  }finally{await db.close();}
 });
+
+test('62 zaproszenia organizatora: pełny plan 1–5, trwałe kody i wspólna kontrola wejścia',async()=>{
+ await setup();try{
+  const {randomUUID}=await import('node:crypto');
+  const entries=[12,13,12,13,12].flatMap((n,i)=>Array.from({length:n},(_,j)=>({id:randomUUID(),seat:(i+1)+'-'+(j+1)})));
+  process.env.ORGANIZATIONAL_TICKETS_JSON=JSON.stringify(entries);
+  const inspected=await call(checkin,'POST',{ticket:entries[0].id,action:'inspect'},{},'Bearer door-test');
+  assert.equal(inspected.code,200);assert.equal(inspected.body.result,'valid');assert.equal(inspected.body.seat_id,'1-1');
+  assert.equal((await db.query('SELECT count(*)::int n FROM premiere_organizational_tickets')).rows[0].n,62);
+  for(const entry of entries){const [r]=(await db.query('SELECT * FROM premiere_checkin_org($1,false)',[entry.id])).rows;assert.equal(r.result,'valid');assert.equal(r.seat_id,entry.seat);}
+  const both=await Promise.all([0,1].map(()=>call(checkin,'POST',{ticket:entries[0].id,action:'enter'},{},'Bearer door-test')));
+  assert.deepEqual(both.map(r=>r.body.result).sort(),['entered','used']);
+  assert.equal((await call(checkin,'GET',{}, {q:'rząd 1'},'Bearer door-test')).body.tickets.length,12);
+  assert.equal((await db.query("SELECT count(*)::int n FROM premiere_seats WHERE pool='public'")).rows[0].n,17);
+  await db.query('UPDATE premiere_organizational_tickets SET revoked=true WHERE id=$1',[entries[1].id]);
+  assert.equal((await call(checkin,'POST',{ticket:entries[1].id,action:'inspect'},{},'Bearer door-test')).body.result,'invalid');
+  await assert.rejects(()=>db.query('SELECT premiere_seed_org_tickets($1::jsonb)',[JSON.stringify(entries.slice(1))]),/INVALID_ORGANIZATIONAL/);
+  assert.equal((await db.query('SELECT count(*)::int n FROM premiere_organizational_tickets')).rows[0].n,62);
+ }finally{delete process.env.ORGANIZATIONAL_TICKETS_JSON;await db.close();}
+});
