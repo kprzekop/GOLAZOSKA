@@ -20,33 +20,71 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 </style><link rel="icon" type="image/webp" sizes="640x640" href="/favicon.webp?v=20261027">
 </head><body><main>
 <a href="/">← Strona filmu</a><p class="eyebrow">Premiera · 21 listopada 2026 · godz. 19:00</p>
-<h1>Zarezerwuj miejsce</h1>
-<p>Bezpłatny pokaz w sali widowiskowej MDK, Rynek Zygmunta Augusta 9. Wejście od ul. Kościelnej, II piętro.</p>
-<p class="muted">Wybierz od 1 do 4 miejsc. Rząd 1 jest najbliżej ekranu. Numery na planie rosną od lewej do prawej, patrząc w stronę ekranu.</p>
-<p class="muted">Potwierdź adres e-mail w ciągu 24 godzin. 14 listopada wyślemy prośbę o potwierdzenie udziału do <strong>18 listopada 2026, godz. 19:00</strong>. Bez potwierdzenia miejsca wrócą do puli. Dla zgłoszeń przed tym terminem jest to również ostateczny termin weryfikacji e-maila. Potwierdzenie e-maila od 14 listopada godz. 19:00 potwierdza także udział. Późniejsze rezerwacje wymagają potwierdzenia w ciągu 24 godzin, najpóźniej do początku pokazu.</p>
+<h1>Zarezerwuj wejście na premierę</h1>
+<p><strong>Wstęp bezpłatny.</strong> Sala widowiskowa MDK, Rynek Zygmunta Augusta 9.<br>Wejście od ul. Kościelnej, II piętro.</p>
+<section id="rules" aria-label="Jak zarezerwować">
+<h2>Jak to działa?</h2>
+<ol><li>Wybierz od 1 do 4 miejsc i podaj dane.</li><li>Kliknij link w e-mailu, aby potwierdzić zgłoszenie.</li><li id="confirmationRule"></li></ol>
+<p class="muted">Zrezygnować możesz w każdej chwili przez link w e-mailu.</p>
+</section>
 <p id="availability" aria-live="polite">Sprawdzam dostępność…</p>
 <form id="form" class="hidden">
+ <h2>1. Wybierz wejście</h2>
+ <div id="seatedChoice">
+ <p>Wybierz od 1 do 4 zielonych foteli. Rząd 1 jest najbliżej ekranu.</p>
  <div class="screen">EKRAN</div><div id="seatmap" class="seatmap" role="group" aria-label="Plan sali"></div>
- <p class="legend">Zielone: wolne · złote: Twój wybór · szare: zajęte · fioletowe: pula organizatora · brązowe: dostępne później.</p>
- <p id="selected" aria-live="polite">Nie wybrano miejsc.</p><button id="reload" type="button">Odśwież plan</button>
- <label class="inline"><input id="waiting" type="checkbox">Wybieram wejście bez gwarancji fotela / listę rezerwową zamiast wyboru foteli.</label>
- <p class="muted">Przyjmujemy do 20 osób bez gwarancji fotela — udział może odbyć się na stojąco. Po wyczerpaniu tej puli kolejne grupy trafiają na listę rezerwową, która nie uprawnia do wejścia. Grupy liczymy w osobach i nie rozdzielamy. Osoby bez foteli mają pierwszeństwo do zwolnionych miejsc siedzących. Przydział i terminy otrzymasz w e-mailu.</p>
- <p id="overflowAvailability" class="muted"></p><div id="waitCount" class="hidden"><label for="seats">Liczba osób bez przypisanego fotela</label><select id="seats" name="seats"><option>1</option><option>2</option><option>3</option><option>4</option></select><label class="inline"><input id="standingConsent" type="checkbox">Rozumiem, że wejście z puli 20 osób nie gwarantuje fotela i mogę uczestniczyć na stojąco. Dalsza lista rezerwowa nie gwarantuje wejścia.</label></div>
+ <p class="legend">Zielone: wolne · złote: Twój wybór · pozostałe: niedostępne.</p>
+ <p id="selected" aria-live="polite">Nie wybrano miejsc.</p>
+ </div>
+ <button id="reload" type="button">Odśwież dostępność</button>
+ <button id="alternative" type="button" class="hidden">Nie ma miejsc dla Twojej grupy?</button>
+ <div id="alternativeChoice" class="hidden">
+ <label class="inline"><input id="waiting" type="checkbox"><span id="alternativeLabel">Wybieram wejście na stojąco</span></label>
+ <div id="waitCount" class="hidden">
+ <label for="seats">Liczba osób</label><select id="seats" name="seats"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+ <p id="overflowAvailability" aria-live="polite"></p>
+ <label class="inline"><input id="standingConsent" type="checkbox"><span id="consentText"></span></label>
+ </div></div>
+ <h2>2. Podaj dane</h2>
  <label for="name">Imię i nazwisko</label><input id="name" name="name" maxlength="120" minlength="2" required autocomplete="name">
  <label for="email">Adres e-mail</label><input id="email" name="email" type="email" maxlength="254" required autocomplete="email">
  <label for="phone">Numer telefonu</label><input id="phone" name="phone" type="tel" maxlength="25" required autocomplete="tel" placeholder="np. 600 123 456">
  <label for="phoneRepeat">Powtórz numer telefonu</label><input id="phoneRepeat" name="phoneRepeat" type="tel" maxlength="25" required autocomplete="off">
  <label class="hp" for="website">Pozostaw puste</label><input class="hp" id="website" name="website" tabindex="-1" autocomplete="off">
  <div id="challenge"></div>
- <p class="muted">Podanie danych jest potrzebne do obsługi rezerwacji i kontaktu w sprawie pokazu. Telefon nie jest weryfikowany SMS-em. Zgłoszenie można anulować przez link w e-mailu.</p>
+ <h2>3. Potwierdź zgłoszenie</h2><p id="verificationRule"></p>
+ <p class="muted">Dane służą do obsługi rezerwacji i kontaktu w sprawie pokazu.</p>
  <p class="muted">Przed wysłaniem zapoznaj się z <a href="/prywatnosc.html">informacją o przetwarzaniu danych</a>.</p>
- <button id="submit" type="submit">Zarezerwuj i wyślij e-mail</button>
+ <button id="submit" type="submit">Zarezerwuj</button>
 </form><p id="message" role="status" aria-live="polite"></p>
 </main><script>
 const form=document.getElementById('form'),message=document.getElementById('message'),availability=document.getElementById('availability');
 const selected=new Set(),waiting=document.getElementById('waiting'),map=document.getElementById('seatmap');
-let seatData=[],widget;
-function setWaiting(){selected.clear();document.getElementById('waitCount').classList.toggle('hidden',!waiting.checked);document.getElementById('standingConsent').required=waiting.checked;render();}
+let seatData=[],widget,standingAvailable=0;
+function verificationText(now=new Date()){
+ const end=new Date('2026-11-21T19:00:00+01:00'),cutoff=new Date('2026-11-18T19:00:00+01:00');
+ const deadline=new Date(Math.min(now.getTime()+86400000,end.getTime(),now<cutoff?cutoff.getTime():Infinity));
+ return 'Po zgłoszeniu kliknij link w e-mailu do '+deadline.toLocaleString('pl-PL',{timeZone:'Europe/Warsaw',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})+'. Bez potwierdzenia zgłoszenie wygaśnie.';
+}
+function updateRules(){
+ const early=Date.now()<new Date('2026-11-14T19:00:00+01:00').getTime();
+ document.getElementById('confirmationRule').textContent=early?'14 listopada wyślemy przypomnienie. Potwierdź udział do 18 listopada, godz. 19:00. Bez potwierdzenia zwolnimy Twoje wejście.':'Potwierdzenie w e-mailu oznacza również potwierdzenie udziału. Nie musisz robić tego drugi raz.';
+ document.getElementById('verificationRule').textContent=verificationText();
+}
+function updateVariant(){
+ const isStanding=Number(document.getElementById('seats').value)<=standingAvailable;
+ document.getElementById('alternativeLabel').textContent=standingAvailable>0?'Wybieram wejście na stojąco':'Zapisuję się na listę rezerwową';
+ document.getElementById('overflowAvailability').textContent=isStanding?'Wejście na pokaz bez gwarancji fotela. Jeśli zwolnią się miejsca siedzące, wyślemy propozycję.':'Lista rezerwowa nie uprawnia do wejścia. Przyjdź dopiero po otrzymaniu i przyjęciu propozycji. Całą grupę zapisujemy razem.';
+ document.getElementById('consentText').textContent=isStanding?'Rozumiem, że mogę uczestniczyć na stojąco.':'Rozumiem, że zapis na listę rezerwową nie gwarantuje wejścia.';
+ document.getElementById('submit').textContent=waiting.checked?(isStanding?'Zarezerwuj wejście na stojąco':'Zapisz na listę rezerwową'):'Zarezerwuj miejsca';
+ document.getElementById('standingConsent').required=waiting.checked;
+}
+function setWaiting(){
+ selected.clear();document.getElementById('standingConsent').checked=false;
+ document.getElementById('waitCount').classList.toggle('hidden',!waiting.checked);
+ updateVariant();render();
+}
+updateRules();
 const normalize=v=>v.replace(/[\s()-]/g,'').replace(/^00/,'+');
 function render(){
  map.replaceChildren();
@@ -80,16 +118,23 @@ async function load(){
   }
   return;
  }
- document.getElementById('overflowAvailability').textContent=d.overflow?'Pozostało '+d.overflow.available+' z '+d.overflow.capacity+' wejść bez gwarancji fotela. Gdy cała grupa nie mieści się w tej puli, trafi na listę rezerwową.':'';
- if(d.waitlist&&!selected.size){waiting.checked=true;setWaiting();}
- seatData=d.seats;for(const id of selected)if(!seatData.some(s=>s.id===id&&s.status==='available'))selected.delete(id);
- render();form.classList.remove('hidden');availability.textContent=d.waitlist?'Wszystkie udostępnione fotele są zajęte. Możesz zgłosić wejście bez gwarancji fotela lub na dalszą listę rezerwową.':'Wybierz miejsca na planie sali.';
+ standingAvailable=d.overflow?.available||0;
+ seatData=d.seats;
+ for(const id of selected)if(!seatData.some(s=>s.id===id&&s.status==='available'))selected.delete(id);
+ const hasSeats=seatData.some(s=>s.status==='available');
+ document.getElementById('seatedChoice').classList.toggle('hidden',!hasSeats);
+ document.getElementById('alternative').classList.toggle('hidden',!hasSeats);
+ if(!hasSeats){document.getElementById('alternativeChoice').classList.remove('hidden');waiting.checked=true;setWaiting();}
+ updateRules();updateVariant();render();form.classList.remove('hidden');
+ availability.textContent=hasSeats?'':standingAvailable>0?'Fotele są zajęte. Możesz zarezerwować wejście na stojąco.':'Wszystkie wejścia są zajęte. Możesz zapisać się na listę rezerwową.';
  if(!document.getElementById('turnstile-script')){
   const s=document.createElement('script');s.id='turnstile-script';s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
   s.onload=()=>{widget=window.turnstile.render('#challenge',{sitekey:d.siteKey,theme:'dark'});};document.head.append(s);
  }
 }
 waiting.onchange=setWaiting;
+document.getElementById('alternative').onclick=()=>{document.getElementById('alternativeChoice').classList.remove('hidden');waiting.checked=true;setWaiting();document.getElementById('seats').focus();};
+document.getElementById('seats').onchange=()=>{document.getElementById('standingConsent').checked=false;updateVariant();};
 document.getElementById('reload').onclick=()=>load().catch(e=>message.textContent=e.message);
 form.addEventListener('submit',async e=>{
  e.preventDefault();message.textContent='';
@@ -104,10 +149,11 @@ form.addEventListener('submit',async e=>{
   const errors={DUPLICATE:'Ten e-mail ma już aktywne zgłoszenie. Sprawdź skrzynkę.',SEATS_UNAVAILABLE:'Ktoś właśnie zarezerwował wybrane miejsca. Wybierz inne na odświeżonym planie.',CHALLENGE:'Potwierdź zabezpieczenie formularza.',INVALID_INPUT:'Sprawdź dane i zgodność obu numerów telefonu.',MAIL_UNAVAILABLE:'Nie udało się wysłać wiadomości. Zgłoszenie zostało anulowane; spróbuj ponownie.'};
   if(!r.ok){if(d.error==='SEATS_UNAVAILABLE')await load();throw Error(errors[d.error]||'Nie udało się przyjąć zgłoszenia. Spróbuj później.');}
   form.classList.add('hidden');availability.textContent='';
-  message.textContent=d.admission==='waiting'
-   ?'Zgłoszenie na listę rezerwową przyjęte. Nie gwarantuje wejścia. Potwierdź e-mail w ciągu 24 godzin; jeśli pojawi się oferta, wyślemy ją osobno.'
-   :d.admission==='standing'?'Przyjęto zgłoszenie wejścia bez gwarancji fotela — udział może odbyć się na stojąco. Potwierdź e-mail w ciągu 24 godzin i później udział do 18 listopada godz. 19:00 zgodnie z wiadomością.'
-   :'Sprawdź e-mail i potwierdź adres w ciągu 24 godzin, najpóźniej do wskazanego terminu. Bez potwierdzenia miejsca zostaną zwolnione.';
+  message.textContent=(d.admission==='waiting'
+   ?'Zgłoszenie na listę rezerwową przyjęte. Przyjdź dopiero po otrzymaniu i przyjęciu propozycji. '
+   :d.admission==='standing'?'Przyjęto zgłoszenie wejścia na pokaz; udział może odbyć się na stojąco. '
+   :'Wybrane miejsca czekają na potwierdzenie. ')+verificationText();
+
  }catch(err){message.textContent=err.message;window.turnstile?.reset(widget);}
  finally{button.disabled=false;}
 });
