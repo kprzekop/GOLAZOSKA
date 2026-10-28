@@ -1,3 +1,5 @@
+DO $setup$
+BEGIN
 CREATE TABLE IF NOT EXISTS premiere_tickets(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  reservation_id uuid NOT NULL REFERENCES premiere_reservations(id) ON DELETE CASCADE,
@@ -7,7 +9,7 @@ CREATE TABLE IF NOT EXISTS premiere_tickets(
 );
 ALTER TABLE premiere_reservations ADD COLUMN IF NOT EXISTS ticket_sent_for text;
 ALTER TABLE premiere_reservations ADD COLUMN IF NOT EXISTS ticket_mail_claimed_at timestamptz;
-CREATE OR REPLACE FUNCTION premiere_checkin(p_ticket uuid,p_enter boolean)
+EXECUTE $create$CREATE OR REPLACE FUNCTION premiere_checkin(p_ticket uuid,p_enter boolean)
 RETURNS TABLE(result text,guest_name text,person_no integer,admission text,seat_id text,entered_at timestamptz)
 LANGUAGE plpgsql AS $fn$
 DECLARE t premiere_tickets%ROWTYPE;r premiere_reservations%ROWTYPE;place text;
@@ -31,4 +33,5 @@ BEGIN
  END IF;
  IF p_enter THEN UPDATE premiere_tickets SET checked_in_at=now() WHERE id=t.id RETURNING checked_in_at INTO t.checked_in_at;END IF;
  RETURN QUERY SELECT CASE WHEN p_enter THEN 'entered' ELSE 'valid' END,r.name,t.person_no,r.admission,place,t.checked_in_at;
-END $fn$;
+END $fn$$create$;
+END $setup$;

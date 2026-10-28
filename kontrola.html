@@ -1,7 +1,7 @@
 <!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>Kontrola wejściówek – Goła Zośka</title><style>body{margin:0;background:#101716;color:#eee9de;font:18px/1.5 Arial,sans-serif}main{max-width:700px;margin:30px auto;padding:24px}a{color:#d4b58c}button,input{font:inherit;padding:12px;margin:6px 0}button{background:#d4b58c;color:#101716;border:0;cursor:pointer}button:disabled{opacity:.5}input{box-sizing:border-box;width:100%}label{display:block}section{margin:22px 0;padding:18px;border:1px solid #8e7b5e}[hidden]{display:none!important}.muted{font-size:15px;color:#c8c8bd}.good{border:3px solid #54c88b}.bad{border:3px solid #ed8077}h1{line-height:1.15}
 video{width:100%;max-height:400px;background:black;border:2px solid #d4b58c}#result{font-size:22px}#results button{display:block;width:100%;text-align:left}</style></head><body><main>
 <h1>Kontrola wejściówek</h1><p>21 listopada 2026 · Goła Zośka 1812</p>
-<form id="login" autocomplete="on"><label>Login<input name="username" value="obsluga" readonly autocomplete="username"></label><label>Hasło obsługi<input id="password" name="password" type="password" required autocomplete="current-password"></label><button>Zaloguj się</button></form>
+<form id="login" action="/kontrola.html" method="post" autocomplete="on"><label>Login<input name="username" value="obsluga" readonly autocomplete="username"></label><label>Hasło obsługi<input id="password" name="password" type="password" required autocomplete="current-password"></label><button>Zaloguj się</button></form>
 <p id="message" role="status" aria-live="polite"></p>
 <div id="panel" hidden><button id="logout">Wyloguj</button>
 <section><h2>Skanuj kod</h2><button id="start">Włącz aparat</button><button id="stop" hidden>Wyłącz aparat</button>
@@ -12,7 +12,7 @@ video{width:100%;max-height:400px;background:black;border:2px solid #d4b58c}#res
 <section><h2>Bez aparatu</h2><form id="manual"><label>Numer wejściówki<input id="ticketNumber" autocomplete="off" placeholder="Numer z e-maila"></label><button>Sprawdź numer</button></form>
 <form id="search"><label>Nazwisko lub e-mail<input id="query" minlength="3" maxlength="120" autocomplete="off"></label><button>Szukaj</button></form><div id="results"></div></section>
 </div></main><script src="/api/qr-scanner"></script><script>
-let key='',stream=null,running=false,busy=false,paused=false,current=null,detector=null;
+let key='',stream=null,running=false,busy=false,paused=false,current=null,detector=null,inspection=0;
 const $=id=>document.getElementById(id),video=$('video'),canvas=$('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
 async function api(method,body,path='/api/checkin'){
  const r=await fetch(path,{method,headers:{Authorization:'Bearer '+key,...(method==='POST'?{'Content-Type':'application/json'}:{})},...(method==='POST'?{body:JSON.stringify(body)}:{})});
@@ -27,7 +27,7 @@ $('login').onsubmit=async e=>{
  }catch(e){$('message').textContent=e.message;}
 };
 function stop(){running=false;stream?.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;video.hidden=true;$('stop').hidden=true;$('start').hidden=false;}
-function logout(){stop();key='';current=null;paused=false;$('password').value='';$('panel').hidden=true;$('login').hidden=false;$('result').hidden=true;$('results').replaceChildren();}
+function logout(){stop();inspection++;key='';current=null;paused=false;$('password').value='';$('panel').hidden=true;$('login').hidden=false;$('result').hidden=true;$('results').replaceChildren();}
 $('logout').onclick=logout;$('stop').onclick=stop;
 $('start').onclick=async()=>{
  try{
@@ -59,10 +59,11 @@ async function scan(){
 }
 const valid=/^(?:GZ26:)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function inspect(value){
+ const version=++inspection;
  paused=true;current=null;$('enter').hidden=true;$('result').hidden=false;$('result').className='';$('verdict').textContent='Sprawdzam…';$('details').textContent='';
  if(!valid.test(value)){show({result:'not_found'});return;}
- try{current=value.replace(/^GZ26:/,'');show(await api('POST',{ticket:current,action:'inspect'}));}
- catch(e){current=null;$('verdict').textContent='Nie sprawdzono wejściówki';$('details').textContent=e.message;}
+ try{const id=value.replace(/^GZ26:/,'');const result=await api('POST',{ticket:id,action:'inspect'});if(version!==inspection)return;current=id;show(result);}
+ catch(e){if(version!==inspection)return;current=null;$('verdict').textContent='Nie sprawdzono wejściówki';$('details').textContent=e.message;}
 }
 function show(r){
  const labels={valid:'WAŻNA WEJŚCIÓWKA',entered:'WPUSZCZONO',used:'JUŻ WYKORZYSTANA',invalid:'NIEWAŻNA WEJŚCIÓWKA',not_found:'NIE ZNALEZIONO WEJŚCIÓWKI'};
@@ -77,7 +78,7 @@ $('enter').onclick=async()=>{
  catch(e){$('message').textContent=e.message;}
  finally{$('enter').disabled=false;}
 };
-$('next').onclick=()=>{paused=false;current=null;$('result').hidden=true;$('message').textContent='Gotowy na kolejny kod.';};
+$('next').onclick=()=>{inspection++;paused=false;current=null;$('result').hidden=true;$('message').textContent='Gotowy na kolejny kod.';};
 $('manual').onsubmit=e=>{e.preventDefault();inspect($('ticketNumber').value.trim());};
 $('search').onsubmit=async e=>{
  e.preventDefault();$('results').replaceChildren();
