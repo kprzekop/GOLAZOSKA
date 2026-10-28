@@ -29,10 +29,10 @@ test('przy wolnych fotelach alternatywa jest schowana; pojawia się na życzenie
  }finally{dom.window.close();}
 });
 test('wariant odpowiada liczbie dostępnych wejść i wielkości grupy, zgoda jest ponawiana',async()=>{
- const dom=await page({free:false,available:2});try{const d=dom.window.document;
+ const dom=await page({free:false,available:1});try{const d=dom.window.document;
  assert.match(d.getElementById('overflowAvailability').textContent,/bez gwarancji fotela/);
  d.getElementById('standingConsent').checked=true;
- d.getElementById('seats').value='3';d.getElementById('seats').dispatchEvent(new dom.window.Event('change'));
+ d.getElementById('seats').value='2';d.getElementById('seats').dispatchEvent(new dom.window.Event('change'));
  assert.match(d.getElementById('overflowAvailability').textContent,/Lista rezerwowa nie uprawnia/);
  assert.equal(d.getElementById('standingConsent').checked,false);
  assert.equal(d.getElementById('submit').textContent,'Zapisz na listę rezerwową');

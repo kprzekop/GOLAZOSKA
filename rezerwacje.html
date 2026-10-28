@@ -24,14 +24,14 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 <p><strong>Wstęp bezpłatny.</strong> Sala widowiskowa MDK, Rynek Zygmunta Augusta 9.<br>Wejście od ul. Kościelnej, II piętro.</p>
 <section id="rules" aria-label="Jak zarezerwować">
 <h2>Jak to działa?</h2>
-<ol><li>Wybierz od 1 do 4 miejsc i podaj dane.</li><li>Kliknij link w e-mailu, aby potwierdzić zgłoszenie.</li><li id="confirmationRule"></li></ol>
+<ol><li>Wybierz od 1 do 2 miejsc i podaj dane.</li><li>Kliknij link w e-mailu, aby potwierdzić zgłoszenie.</li><li id="confirmationRule"></li></ol>
 <p class="muted">Zrezygnować możesz w każdej chwili przez link w e-mailu.</p>
 </section>
 <p id="availability" aria-live="polite">Sprawdzam dostępność…</p>
 <form id="form" class="hidden">
  <h2>1. Wybierz wejście</h2>
  <div id="seatedChoice">
- <p>Wybierz od 1 do 4 zielonych foteli. Rząd 1 jest najbliżej ekranu.</p>
+ <p>Wybierz od 1 do 2 zielonych foteli. Rząd 1 jest najbliżej ekranu.</p>
  <div class="screen">EKRAN</div><div id="seatmap" class="seatmap" role="group" aria-label="Plan sali"></div>
  <p class="legend">Zielone: wolne · złote: Twój wybór · pozostałe: niedostępne.</p>
  <p id="selected" aria-live="polite">Nie wybrano miejsc.</p>
@@ -41,7 +41,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
  <div id="alternativeChoice" class="hidden">
  <label class="inline"><input id="waiting" type="checkbox"><span id="alternativeLabel">Wybieram wejście na stojąco</span></label>
  <div id="waitCount" class="hidden">
- <label for="seats">Liczba osób</label><select id="seats" name="seats"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+ <label for="seats">Liczba osób</label><select id="seats" name="seats"><option>1</option><option>2</option></select>
  <p id="overflowAvailability" aria-live="polite"></p>
  <label class="inline"><input id="standingConsent" type="checkbox"><span id="consentText"></span></label>
  </div></div>
@@ -98,8 +98,8 @@ function render(){
    b.disabled=s.status!=='available'||waiting.checked;b.setAttribute('aria-pressed',selected.has(s.id)?'true':'false');
    b.onclick=()=>{
     if(selected.has(s.id))selected.delete(s.id);
-    else if(selected.size<4)selected.add(s.id);
-    else {message.textContent='W jednej rezerwacji możesz wybrać maksymalnie 4 miejsca.';return;}
+    else if(selected.size<2)selected.add(s.id);
+    else {message.textContent='W jednej rezerwacji możesz wybrać maksymalnie 2 miejsca.';return;}
     message.textContent='';render();
    };line.append(b);
   }map.append(line);

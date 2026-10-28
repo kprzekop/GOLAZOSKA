@@ -22,7 +22,7 @@ Zapisy są zaplanowane na **5 listopada 2026 o godz. 18:00 Europe/Warsaw** (5 li
 
 Łącznie 83 miejsca: 62 organizacyjnych, 17 dostępnych na początku, 4 do późniejszego wypuszczenia. Rząd 1 jest przy ekranie. Przyjęta numeracja na planie: od lewej do prawej, patrząc w stronę ekranu; organizator powinien sprawdzić ją względem numerów foteli przed otwarciem zapisów.
 
-W jednym zgłoszeniu 1–4 miejsca, jeden aktywny zapis na e-mail. Ta sama blokada w bazie obejmuje wszystkie przydziały i zmiany puli, chroniąc przed podwójną rezerwacją. Wybrane miejsce zostaje zablokowane dopiero po przyjęciu formularza, nie po kliknięciu na planie. Konflikt wymaga ponownego wyboru.
+W jednym zgłoszeniu 1–2 miejsca, jeden aktywny zapis na e-mail. Ta sama blokada w bazie obejmuje wszystkie przydziały i zmiany puli, chroniąc przed podwójną rezerwacją. Wybrane miejsce zostaje zablokowane dopiero po przyjęciu formularza, nie po kliknięciu na planie. Konflikt wymaga ponownego wyboru.
 
 ## Terminy potwierdzeń
 
@@ -74,7 +74,7 @@ Wolne fotele automatyczna kolejka proponuje najpierw zweryfikowanym grupom z pul
 
 Dalsza lista rezerwowa otrzymuje kolejno dostępne fotele lub zwolnione wejścia bez foteli, zawsze do przyjęcia w 48 godzin, najpóźniej do początku pokazu. Oferty mogą obejmować rozdzielone fotele, jeśli brak wystarczającego bloku miejsc obok siebie.
 
-Przy pierwszym wywołaniu backendu lib/seat-policy.js stosuje transakcyjnie db/migrate-admissions.sql (statyczna kopia: lib/admission-schema.js), z zachowaniem istniejących zgłoszeń. Baza blokuje przydziały tą samą blokadą konfiguracji, więc limit 20 nie zależy od liczników w przeglądarce. Zmiana nie odblokowuje rzędów organizacyjnych ani czterech wstrzymanych foteli i nie przesuwa startu 5 listopada 18:00.
+Przy pierwszym wywołaniu backendu lib/seat-policy.js stosuje transakcyjnie db/migrate-admissions.sql (statyczna kopia: lib/admission-schema.js), z zachowaniem istniejących zgłoszeń. Baza blokuje przydziały tą samą blokadą konfiguracji, więc limit 20 nie zależy od liczników w przeglądarce. Zmiana nie odblokowuje rzędów organizacyjnych ani czterech wstrzymanych foteli i nie przesuwa startu 5 listopada 16:00.
 
 Organizator polecił wdrożyć pulę 20 wejść jak po uzyskaniu zgody MDK; zadeklarował uzyskanie zgody do 30 października. Potwierdzenie ustaleń z salą pozostaje po stronie organizatora.
 
