@@ -61,6 +61,8 @@ test('API: formularz → baza → e-mail → weryfikacja → panel → anulowani
   assert.deepEqual(s.body.seatPools,{held:4,organizational:62,public:17});assert.equal(s.body.seats.length,83);assert.equal(s.body.seats.filter(s=>s.status==='available').length,17);
   assert.equal((await call(admin)).code,401);assert.equal((await call(cron)).code,401);
   assert.equal((await call(reserve,'POST',{...data,phoneRepeat:'600123457'})).code,400);
+  assert.equal((await call(reserve,'POST',{...data,seatIds:['6-1','6-2','6-3']})).body.error,'INVALID_INPUT');
+  assert.equal((await call(reserve,'POST',{...data,seatIds:[],waiting:true,seats:3,acceptStanding:true})).body.error,'INVALID_INPUT');
   assert.equal((await call(reserve,'POST',{...data,seatIds:['6-12']})).code,409);
   assert.equal((await call(reserve,'POST',data)).code,200);assert.equal(mails.length,1);
   assert.match(mails[0][2],/rząd 6, miejsce 1/);assert.match(mails[0][2],/18 listopada 2026 o godz. 19:00/);
@@ -141,7 +143,7 @@ test('automatyczny obieg: rezygnacja, oferta fotela, uzupełnienie puli 20 i blo
   await db.query("UPDATE premiere_seats SET pool='held' WHERE pool='public' AND id<>'6-1'");
   await db.query("UPDATE premiere_config SET public_capacity=1 WHERE id=1");
   const firstStanding=await add(1);
-  for(let n=19;n>0;){const size=Math.min(4,n);await add(size);n-=size;}
+  for(let n=19;n>0;){const size=Math.min(2,n);await add(size);n-=size;}
   const waiting=await add(1);
   assert.equal((await db.query('SELECT admission FROM premiere_reservations WHERE id=$1',[waiting.booking_id])).rows[0].admission,'waiting');
   const cancelled=await call(booking,'POST',{token:holder.booking_token,action:'cancel'});
@@ -169,9 +171,9 @@ test('publiczny formularz przydziela pulę 20 po zgodzie, a kolejne zgłoszenia 
  await db.exec(schema.replaceAll('now()',"'2026-11-06 12:00+01'::timestamptz"));
  try{
   await call(status);
-  const body={...data,email:'consent@example.com',seatIds:[],waiting:true,seats:4};
+  const body={...data,email:'consent@example.com',seatIds:[],waiting:true,seats:2};
   assert.equal((await call(reserve,'POST',body)).body.error,'INVALID_INPUT');
-  for(let i=0;i<5;i++){
+  for(let i=0;i<10;i++){
    const r=await call(reserve,'POST',{...body,email:'overflow'+i+'@example.com',acceptStanding:true});
    assert.equal(r.code,200);assert.equal(r.body.admission,'standing');assert.equal(r.body.status,'verification');
   }

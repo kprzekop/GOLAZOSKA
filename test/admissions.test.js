@@ -22,7 +22,7 @@ async function create(db,count=1,ids=[]){
 async function action(db,r,action='confirm'){return (await db.query('SELECT * FROM premiere_action($1,$2)',[r.booking_token,action])).rows[0];}
 async function row(db,r){return (await db.query('SELECT * FROM premiere_reservations WHERE id=$1',[r.booking_id])).rows[0];}
 async function used(db){return (await db.query('SELECT premiere_standing_used() AS n')).rows[0].n;}
-async function fill(db,n=20){for(let i=0;i<n;){const c=Math.min(4,n-i);const r=await create(db,c);await action(db,r);i+=c;}}
+async function fill(db,n=20){for(let i=0;i<n;){const c=Math.min(2,n-i);const r=await create(db,c);await action(db,r);i+=c;}}
 test('migracja jest zgodna z plikiem SQL i zachowuje istniejące rezerwacje',async()=>{
  assert.equal(ADMISSION_SCHEMA,await readFile(new URL('../db/migrate-admissions.sql',import.meta.url),'utf8'));
  const db=new PGlite();try{
@@ -39,18 +39,18 @@ test('20 osób, nie 20 zgłoszeń; dodatkowe grupy na liście i bez dzielenia gr
   assert.equal(await used(db),19);
   const last=await create(db,1);assert.equal((await row(db,last)).admission,'standing');
   assert.equal(await used(db),20);
-  const overflow=await create(db,4);assert.equal((await row(db,overflow)).admission,'waiting');
+  const overflow=await create(db,2);assert.equal((await row(db,overflow)).admission,'waiting');
   assert.equal((await db.query("SELECT count(*)::int n FROM premiere_seats WHERE reservation_id IS NOT NULL")).rows[0].n,0);
   await action(db,last,'cancel');assert.equal(await used(db),19);
  }finally{await db.close();}
 });
 test('równoczesne zapisy nie przekraczają puli 20 osób',async()=>{
  const db=await setup();try{
-  const groups=await Promise.all(Array.from({length:9},()=>create(db,3)));
-  assert.equal(await used(db),18);
+  const groups=await Promise.all(Array.from({length:13},()=>create(db,2)));
+  assert.equal(await used(db),20);
   let standing=0,waiting=0;
   for(const r of groups){const b=await row(db,r);if(b.admission==='standing')standing+=b.seats;else waiting+=b.seats;}
-  assert.equal(standing,18);assert.equal(waiting,9);
+  assert.equal(standing,20);assert.equal(waiting,6);
  }finally{await db.close();}
 });
 test('oferta foteli najpierw dla puli bez foteli; przyjęcie zwalnia wejścia',async()=>{
@@ -63,7 +63,7 @@ test('oferta foteli najpierw dla puli bez foteli; przyjęcie zwalnia wejścia',a
   assert.equal(await used(db),20);
   await db.query("SELECT * FROM premiere_action($1,'confirm')",[offered.token]);
   assert.equal((await db.query('SELECT admission FROM premiere_reservations WHERE id=$1',[next])).rows[0].admission,'seated');
-  assert.equal(await used(db),16);
+  assert.equal(await used(db),18);
   assert.equal((await row(db,waiting)).status,'waiting');
  }finally{await db.close();}
 });
@@ -88,16 +88,16 @@ test('lista rezerwowa dostaje zwolnione wejścia bez foteli; oferta także liczy
   await db.query("UPDATE premiere_seats SET pool='held' WHERE pool='public'");
   const old=(await db.query("SELECT token FROM premiere_reservations WHERE admission='standing' LIMIT 1")).rows[0];
   await db.query("SELECT * FROM premiere_action($1,'cancel')",[old.token]);
-  assert.equal(await used(db),16);
+  assert.equal(await used(db),18);
   const next=(await db.query('SELECT * FROM premiere_advance()')).rows[0].promoted_id;
   assert.equal(next,waiting.booking_id);assert.equal((await row(db,waiting)).offer_target,'standing');
-  assert.equal(await used(db),18);
-  await action(db,waiting);assert.equal((await row(db,waiting)).admission,'standing');assert.equal(await used(db),18);
+  assert.equal(await used(db),20);
+  await action(db,waiting);assert.equal((await row(db,waiting)).admission,'standing');assert.equal(await used(db),20);
  }finally{await db.close();}
 });
 test('brak weryfikacji w 24h i brak potwierdzenia do 18 listopada zwalniają wejścia',async()=>{
  const db=await setup();try{
-  const stale=await create(db,4);assert.equal(await used(db),4);
+  const stale=await create(db,2);assert.equal(await used(db),2);
   await clock(db,'2026-11-07 12:00+01');await db.query('SELECT premiere_expire()');
   assert.equal((await row(db,stale)).status,'expired');assert.equal(await used(db),0);
   const early=await create(db,2);await action(db,early);assert.equal((await row(db,early)).status,'reserved');
@@ -142,4 +142,22 @@ test('formularz bez wolnych foteli wymaga akceptacji zasad puli bez fotela',asyn
   assert.equal(posted.acceptStanding,true);assert.deepEqual(posted.seatIds,[]);
   assert.match(d.getElementById('message').textContent,/udział może odbyć się na stojąco/);
  }finally{dom.window.close();}
+});
+
+test('baza odrzuca trzy miejsca w każdej puli, także po aktualizacji istniejącej instalacji',async()=>{
+ const db=new PGlite();try{
+  // Reproduce an installed v2 database with the former four-seat limit.
+  await db.exec(fixed(base.replaceAll('seats BETWEEN 1 AND 2','seats BETWEEN 1 AND 4').replaceAll('p_count NOT BETWEEN 1 AND 2','p_count NOT BETWEEN 1 AND 4'),time0));
+  const oldSchema=ADMISSION_SCHEMA.replaceAll('p_count NOT BETWEEN 1 AND 2','p_count NOT BETWEEN 1 AND 4');
+  await db.exec(fixed(oldSchema,time0));await db.query('UPDATE premiere_config SET admission_schema_version=2');
+  const prior=await create(db,3,['6-1','6-2','6-3']);
+  await db.exec(fixed(ADMISSION_SCHEMA,time0));
+  assert.equal((await row(db,prior)).seats,3);
+  assert.equal((await db.query('SELECT admission_schema_version FROM premiere_config')).rows[0].admission_schema_version,3);
+  await assert.rejects(()=>create(db,3,['6-4','6-5','6-6']),/INVALID_INPUT/);
+  await assert.rejects(()=>create(db,3),/INVALID_INPUT/);
+  await fill(db);
+  await assert.rejects(()=>create(db,3),/INVALID_INPUT/);
+  assert.equal((await create(db,2)).booking_status,'waiting');
+ }finally{await db.close();}
 });

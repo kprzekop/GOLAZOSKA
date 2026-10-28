@@ -56,7 +56,7 @@ BEGIN
  PERFORM 1 FROM premiere_config WHERE id=1 FOR UPDATE;PERFORM premiere_expire();
  IF now()>='2026-11-21 19:00 Europe/Warsaw'::timestamptz THEN RAISE EXCEPTION 'CLOSED';END IF;
  IF p_name IS NULL OR p_email IS NULL OR p_phone IS NULL OR p_ids IS NULL OR p_count IS NULL OR p_waiting IS NULL
- OR p_count NOT BETWEEN 1 AND 4 OR length(trim(p_name)) NOT BETWEEN 2 AND 120
+ OR p_count NOT BETWEEN 1 AND 2 OR length(trim(p_name)) NOT BETWEEN 2 AND 120
  OR length(p_email)>254 OR p_email !~* '^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+$'
  OR p_phone !~ '^[+]?[0-9]{9,15}$' OR (p_waiting AND cardinality(p_ids)<>0)
  OR (NOT p_waiting AND cardinality(p_ids)<>p_count) THEN RAISE EXCEPTION 'INVALID_INPUT';END IF;
@@ -162,5 +162,6 @@ BEGIN
   RETURN 'confirmed';
  ELSE RAISE EXCEPTION 'ACTION_UNAVAILABLE';END IF;
 END $fn$$create$;
- ALTER TABLE premiere_config ADD COLUMN IF NOT EXISTS admission_schema_version integer NOT NULL DEFAULT 2;
+ ALTER TABLE premiere_config ADD COLUMN IF NOT EXISTS admission_schema_version integer NOT NULL DEFAULT 3;
+ UPDATE premiere_config SET admission_schema_version=3 WHERE id=1;
 END $setup$;

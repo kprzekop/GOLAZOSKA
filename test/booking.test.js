@@ -20,9 +20,9 @@ test('telefon, zgodność powtórzeń i limity sprawdzane na serwerze',()=>{
  assert.equal(validateBooking(good).email,'widz@example.com');
  for(const body of [{...good,phoneRepeat:'600123457'},{...good,phone:'abc',phoneRepeat:'abc'},
  {...good,seatIds:['5-1','5-1']},{...good,seatIds:[]},{...good,seatIds:['5-1','5-2','5-3','5-4','5-5']},
- {...good,waiting:true,seatIds:['5-1']},{...good,waiting:true,seatIds:[],seats:0}])
+ {...good,waiting:true,seatIds:['5-1']},{...good,waiting:true,seatIds:[],seats:0},{...good,waiting:true,seatIds:[],seats:3},{...good,seatIds:['5-1','5-2','5-3']}])
  assert.throws(()=>validateBooking(body),/INVALID_INPUT/);
- assert.equal(validateBooking({...good,waiting:true,seatIds:[],seats:3}).seats,3);
+ assert.equal(validateBooking({...good,waiting:true,seatIds:[],seats:2}).seats,2);
 });
 test('plan 83 miejsc i blokady organizatora; brak podwójnego przydziału',async()=>{
  const db=await database();try{
@@ -67,11 +67,11 @@ test('weryfikacja 24h, potwierdzenie w listopadzie i dokładny termin 18 listopa
 });
 test('lista rezerwowa wymaga weryfikacji, oferta dostaje fotele i wygasa',async()=>{
  const db=await database();try{
-  const waiting=await create(db,[],'waiting@example.com',true,3);
+  const waiting=await create(db,[],'waiting@example.com',true,2);
   assert.equal((await db.query('SELECT * FROM premiere_advance()')).rows[0].promoted_id,null);
   await db.query("SELECT * FROM premiere_action($1,'confirm')",[waiting.booking_token]);
   assert.equal((await db.query('SELECT * FROM premiere_advance()')).rows[0].promoted_id,waiting.booking_id);
-  assert.deepEqual((await db.query('SELECT id FROM premiere_seats WHERE reservation_id=$1 ORDER BY row_no,seat_no',[waiting.booking_id])).rows.map(r=>r.id),['5-1','5-2','5-3']);
+  assert.deepEqual((await db.query('SELECT id FROM premiere_seats WHERE reservation_id=$1 ORDER BY row_no,seat_no',[waiting.booking_id])).rows.map(r=>r.id),['5-1','5-2']);
   await clock(db,'2026-10-29 12:00+01');await db.query('SELECT premiere_expire()');
   assert.equal((await db.query('SELECT status FROM premiere_reservations WHERE id=$1',[waiting.booking_id])).rows[0].status,'expired');
   assert.equal((await db.query('SELECT count(*)::int n FROM premiere_seats WHERE reservation_id=$1',[waiting.booking_id])).rows[0].n,0);
@@ -94,7 +94,7 @@ test('terminy JS są zgodne z SQL i dokładnie trzy doby przed seansem',()=>{
   assert.ok(schema.includes(local),local);
  }
 });
-test('formularz: plan, limit czterech, konflikt miejsc i powtórzony telefon',async()=>{
+test('formularz: plan, limit dwóch, konflikt miejsc i powtórzony telefon',async()=>{
  const db=await database();try{
   const seats=(await db.query('SELECT id,row_no AS row,seat_no AS number,pool FROM premiere_seats ORDER BY row_no,seat_no')).rows.map(s=>({...s,status:s.pool==='public'?'available':s.pool}));
   const html=await readFile(new URL('../rezerwacje.html',import.meta.url),'utf8');
@@ -110,13 +110,13 @@ test('formularz: plan, limit czterech, konflikt miejsc i powtórzony telefon',as
   assert.equal(d.querySelectorAll('.seat:disabled').length,56);
   const buttons=[...d.querySelectorAll('.seat:not(:disabled)')];
   for(const b of buttons.slice(0,5))b.click();
-  assert.equal(d.querySelectorAll('[aria-pressed="true"]').length,4);
+  assert.equal(d.querySelectorAll('[aria-pressed="true"]').length,2);
   d.getElementById('name').value='Jan Kowalski';d.getElementById('email').value='widz@example.com';
   d.getElementById('phone').value='600 123 456';d.getElementById('phoneRepeat').value='600123457';
   d.getElementById('form').dispatchEvent(new dom.window.Event('submit',{cancelable:true}));
   assert.equal(posted,null);assert.match(d.getElementById('message').textContent,/identycznie/);
   d.getElementById('phoneRepeat').value='600123456';d.getElementById('form').dispatchEvent(new dom.window.Event('submit',{cancelable:true}));
-  await new Promise(r=>setTimeout(r,30));assert.equal(posted.seatIds.length,4);
+  await new Promise(r=>setTimeout(r,30));assert.equal(posted.seatIds.length,2);
   assert.match(d.getElementById('message').textContent,/Ktoś właśnie/);dom.window.close();
  }finally{await db.close();}
 });
