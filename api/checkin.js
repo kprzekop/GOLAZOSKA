@@ -16,11 +16,18 @@ export default async function handler(req,res){
     FROM premiere_tickets t JOIN premiere_reservations r ON r.id=t.reservation_id
     WHERE r.name ILIKE ${term} OR r.email ILIKE ${term} OR t.id::text=${q}
     ORDER BY r.name,t.person_no LIMIT 50`;
-   return json(res,200,{tickets:rows});
+      const organizational=await db`SELECT t.id,1 AS person_no,t.checked_in_at,
+    'Zaproszenie organizatora - rząd '||s.row_no||', miejsce '||s.seat_no AS name,
+    'seated' AS admission,CASE WHEN t.revoked THEN 'cancelled' ELSE 'confirmed' END AS status
+    FROM premiere_organizational_tickets t JOIN premiere_seats s ON s.id=t.seat_id
+    WHERE ('rząd '||s.row_no||', miejsce '||s.seat_no) ILIKE ${term} OR t.id::text=${q}
+    ORDER BY s.row_no,s.seat_no LIMIT 62`;
+   return json(res,200,{tickets:[...rows,...organizational]});
   }
   const id=String(req.body?.ticket||'').replace(/^GZ26:/,'');
   if(!uuid.test(id)||!['inspect','enter'].includes(req.body?.action))return json(res,400,{error:'INVALID_INPUT'});
-  const [result]=await db`SELECT * FROM premiere_checkin(${id}::uuid,${req.body.action==='enter'})`;
+  let [result]=await db`SELECT * FROM premiere_checkin(${id}::uuid,${req.body.action==='enter'})`;
+  if(result.result==='not_found')[result]=await db`SELECT * FROM premiere_checkin_org(${id}::uuid,${req.body.action==='enter'})`;
   return json(res,200,result);
  }catch{return json(res,503,{error:'UNAVAILABLE'});}
 }

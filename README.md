@@ -89,3 +89,7 @@ Panel /kontrola.html działa przez HTTPS, pokazuje podgląd tylnego aparatu i sk
 Logowanie: ADMIN_TOKEN albo opcjonalny osobny CHECKIN_TOKEN (Secret, Production, po dodaniu wymagany redeploy). CHECKIN_TOKEN daje wyłącznie dostęp do kontroli, nie do panelu organizatora. Hasło pozostaje w pamięci bieżącej karty, bez localStorage. Wyszukiwanie danych jest chronione tym samym logowaniem.
 
 Migracja db/migrate-tickets.sql jest automatycznie stosowana przez lib/seat-policy.js. Tabela premiere_tickets jest usuwana kaskadowo wraz z danymi rezerwacji podczas zaplanowanego czyszczenia. W kodzie QR znajduje się wyłącznie losowy identyfikator wejściówki, odrębny od linku zarządzania rezerwacją. Weryfikacja wejścia sprawdza aktualną rezerwację w bazie. Ważność wejściówek kończy się o północy po pokazie, 22 listopada.
+
+## Zaproszenia organizatora (rzędy 1–5)
+
+62 osobne kody są zapisywane w premiere_organizational_tickets, bez tworzenia rezerwacji internetowych ani zmiany puli foteli. Prywatny manifest ORGANIZATIONAL_TICKETS_JSON (Secret, Production) inicjuje rejestr raz; identyfikatory są trwałe. Nie zapisuj manifestu ani gotowych kodów w publicznym repozytorium. Kontrola /kontrola.html rozpoznaje oba rodzaje wejściówek i pokazuje rząd oraz miejsce. Wyszukiwanie np. „rząd 1” pokazuje zaproszenia danego rzędu. Stan revoked unieważnia kod. Dane organizacyjnych wejściówek są usuwane po 21 grudnia wraz z innymi zgłoszeniami; po tym terminie rejestr nie jest odtwarzany z manifestu.
