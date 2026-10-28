@@ -1,3 +1,4 @@
+import {deliverTickets} from '../lib/tickets.js';
 import {advanceQueue} from '../lib/queue.js';
 import {applySeatPolicy} from '../lib/seat-policy.js';
 import {json,sql,isAdmin} from '../lib/shared.js';
@@ -15,7 +16,7 @@ export default async function handler(req,res){
     await db`SELECT premiere_set_pool(${id},${pool})`;if(pool==='public')await advanceQueue(db);return json(res,200,{ok:true});
    }
    if(!uuid.test(String(id))||!['cancel','cancel_hold','confirm','offer'].includes(action))return json(res,400,{error:'INVALID_INPUT'});
-   const [r]=await db`SELECT premiere_admin_action(${id}::uuid,${action}) AS status`;if(action!=='cancel_hold')await advanceQueue(db);return json(res,200,r);
+   const [r]=await db`SELECT premiere_admin_action(${id}::uuid,${action}) AS status`;if(action!=='cancel_hold')await advanceQueue(db);if(action==='confirm')await deliverTickets(db,id);return json(res,200,r);
   }
   await advanceQueue(db);
   const reservations=await db`SELECT r.id,r.name,r.email,r.phone,r.seats,r.status,r.admission,r.offer_target,r.upgrade_declined_at,r.created_at,r.verified_at,
