@@ -1,3 +1,4 @@
+import {deliverTickets,admitted,ticketUrl} from '../lib/tickets.js';
 import {advanceQueue} from '../lib/queue.js';
 import {applySeatPolicy} from '../lib/seat-policy.js';
 import {json,sql} from '../lib/shared.js';
@@ -14,14 +15,17 @@ export default async function handler(req,res){
    await db`SELECT * FROM premiere_action(${token}::uuid,${action})`;
   }
   await advanceQueue(db);
-  const [r]=await db`SELECT r.status,r.admission,r.offer_target,r.seats,r.verified_at,r.offer_expires_at,
+  const [r]=await db`SELECT r.id,r.token,r.offer_previous_status,r.status,r.admission,r.offer_target,r.seats,r.verified_at,r.offer_expires_at,
    ARRAY(SELECT s.id FROM premiere_seats s WHERE s.reservation_id=r.id ORDER BY s.row_no,s.seat_no) AS seat_ids
    FROM premiere_reservations r WHERE token=${token}::uuid`;
   if(!r)return json(res,404,{error:'NOT_FOUND'});
+  const hasTickets=admitted(r);
+  let ticketDelivery;
+  if(req.method==='POST'&&req.body?.action==='confirm'&&hasTickets)ticketDelivery=await deliverTickets(db,r.id);
   const canConfirm=new Date()<new Date(EVENT_AT)&&(
    ['verification','offered'].includes(r.status)||(r.status==='waiting'&&!r.verified_at)||
    (r.status==='reserved'&&new Date()>=new Date(REMIND_FROM)));
-  return json(res,200,{status:r.status,admission:r.admission,offerTarget:r.offer_target,seats:r.seats,seatIds:r.seat_ids,
+  return json(res,200,{ticketsUrl:hasTickets?ticketUrl(r.token):null,ticketMailPending:!!ticketDelivery?.failed,status:r.status,admission:r.admission,offerTarget:r.offer_target,seats:r.seats,seatIds:r.seat_ids,
    canDecline:r.status==='offered'&&r.admission==='standing'&&r.offer_target==='seated',
    emailVerified:!!r.verified_at,canConfirm,offerExpiresAt:r.offer_expires_at});
  }catch(e){

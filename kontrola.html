@@ -1,0 +1,92 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>Kontrola wejściówek – Goła Zośka</title><style>body{margin:0;background:#101716;color:#eee9de;font:18px/1.5 Arial,sans-serif}main{max-width:700px;margin:30px auto;padding:24px}a{color:#d4b58c}button,input{font:inherit;padding:12px;margin:6px 0}button{background:#d4b58c;color:#101716;border:0;cursor:pointer}button:disabled{opacity:.5}input{box-sizing:border-box;width:100%}label{display:block}section{margin:22px 0;padding:18px;border:1px solid #8e7b5e}[hidden]{display:none!important}.muted{font-size:15px;color:#c8c8bd}.good{border:3px solid #54c88b}.bad{border:3px solid #ed8077}h1{line-height:1.15}
+video{width:100%;max-height:400px;background:black;border:2px solid #d4b58c}#result{font-size:22px}#results button{display:block;width:100%;text-align:left}</style></head><body><main>
+<h1>Kontrola wejściówek</h1><p>21 listopada 2026 · Goła Zośka 1812</p>
+<form id="login" action="/kontrola.html" method="post" autocomplete="on"><label>Login<input name="username" value="obsluga" readonly autocomplete="username"></label><label>Hasło obsługi<input id="password" name="password" type="password" required autocomplete="current-password"></label><button>Zaloguj się</button></form>
+<p id="message" role="status" aria-live="polite"></p>
+<div id="panel" hidden><button id="logout">Wyloguj</button>
+<section><h2>Skanuj kod</h2><button id="start">Włącz aparat</button><button id="stop" hidden>Wyłącz aparat</button>
+<video id="video" autoplay muted playsinline hidden></video><canvas id="canvas" hidden></canvas>
+<p class="muted">Skieruj tylny aparat na kod QR. Potrzebny jest internet. Po odczycie sprawdź wynik i naciśnij „Wpuść”.</p>
+</section>
+<section id="result" hidden role="status" aria-live="polite"><strong id="verdict"></strong><p id="details"></p><button id="enter" hidden>Wpuść</button><button id="next">Następny kod</button></section>
+<section><h2>Bez aparatu</h2><form id="manual"><label>Numer wejściówki<input id="ticketNumber" autocomplete="off" placeholder="Numer z e-maila"></label><button>Sprawdź numer</button></form>
+<form id="search"><label>Nazwisko lub e-mail<input id="query" minlength="3" maxlength="120" autocomplete="off"></label><button>Szukaj</button></form><div id="results"></div></section>
+</div></main><script src="/api/qr-scanner"></script><script>
+let key='',stream=null,running=false,busy=false,paused=false,current=null,detector=null,inspection=0;
+const $=id=>document.getElementById(id),video=$('video'),canvas=$('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
+async function api(method,body,path='/api/checkin'){
+ const r=await fetch(path,{method,headers:{Authorization:'Bearer '+key,...(method==='POST'?{'Content-Type':'application/json'}:{})},...(method==='POST'?{body:JSON.stringify(body)}:{})});
+ if(r.status===401){logout();throw Error('Nieprawidłowe hasło lub sesja zakończona.');}
+ if(!r.ok)throw Error('Nie udało się połączyć. Sprawdź internet i spróbuj ponownie.');
+ return r.json();
+}
+$('login').onsubmit=async e=>{
+ e.preventDefault();key=$('password').value;
+ try{await api('GET');$('login').hidden=true;$('panel').hidden=false;$('message').textContent='';
+ if(window.PasswordCredential&&navigator.credentials?.store)navigator.credentials.store(new PasswordCredential($('login'))).catch(()=>{});
+ }catch(e){$('message').textContent=e.message;}
+};
+function stop(){running=false;stream?.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;video.hidden=true;$('stop').hidden=true;$('start').hidden=false;}
+function logout(){stop();inspection++;key='';current=null;paused=false;$('password').value='';$('panel').hidden=true;$('login').hidden=false;$('result').hidden=true;$('results').replaceChildren();}
+$('logout').onclick=logout;$('stop').onclick=stop;
+$('start').onclick=async()=>{
+ try{
+  if(!navigator.mediaDevices?.getUserMedia)throw Error('Aparat jest niedostępny. Otwórz stronę w Chrome przez HTTPS lub użyj wyszukiwania.');
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280}},audio:false});
+  video.srcObject=stream;video.hidden=false;await video.play();running=true;$('start').hidden=true;$('stop').hidden=false;
+  if(window.BarcodeDetector){try{detector=new BarcodeDetector({formats:['qr_code']});}catch{detector=null;}}
+  if(!detector&&!window.jsQR)throw Error('Nie udało się wczytać skanera. Odśwież stronę lub wpisz numer ręcznie.');
+  $('message').textContent='Aparat gotowy. Skieruj go na kod.';scan();
+ }catch(e){stop();$('message').textContent=e.name==='NotAllowedError'?'Zezwól na użycie aparatu w ustawieniach Chrome lub skorzystaj z wyszukiwania.':e.message;}
+};
+async function scan(){
+ if(!running)return;
+ if(!paused&&!busy&&video.readyState>=2){
+  busy=true;
+  try{
+   let value;
+   if(detector){try{value=(await detector.detect(video))[0]?.rawValue;}catch{detector=null;}}
+   if(!detector&&window.jsQR){
+    const scale=Math.min(1,640/video.videoWidth);canvas.width=Math.round(video.videoWidth*scale);canvas.height=Math.round(video.videoHeight*scale);
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);value=jsQR(pixels.data,pixels.width,pixels.height,{inversionAttempts:'dontInvert'})?.data;
+   }
+   if(value){paused=true;await inspect(value);}
+  }catch{$('message').textContent='Problem z odczytem. Spróbuj ponownie lub wpisz numer ręcznie.';}
+  finally{busy=false;}
+ }
+ if(running)setTimeout(scan,160);
+}
+const valid=/^(?:GZ26:)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+async function inspect(value){
+ const version=++inspection;
+ paused=true;current=null;$('enter').hidden=true;$('result').hidden=false;$('result').className='';$('verdict').textContent='Sprawdzam…';$('details').textContent='';
+ if(!valid.test(value)){show({result:'not_found'});return;}
+ try{const id=value.replace(/^GZ26:/,'');const result=await api('POST',{ticket:id,action:'inspect'});if(version!==inspection)return;current=id;show(result);}
+ catch(e){if(version!==inspection)return;current=null;$('verdict').textContent='Nie sprawdzono wejściówki';$('details').textContent=e.message;}
+}
+function show(r){
+ const labels={valid:'WAŻNA WEJŚCIÓWKA',entered:'WPUSZCZONO',used:'JUŻ WYKORZYSTANA',invalid:'NIEWAŻNA WEJŚCIÓWKA',not_found:'NIE ZNALEZIONO WEJŚCIÓWKI'};
+ $('verdict').textContent=labels[r.result]||'Nie można sprawdzić';
+ $('result').className=['valid','entered'].includes(r.result)?'good':'bad';
+ $('details').textContent=r.guest_name?r.guest_name+' · osoba '+r.person_no+' · '+(r.seat_id?'rząd '+r.seat_id.split('-')[0]+', miejsce '+r.seat_id.split('-')[1]:'bez gwarancji fotela')+(r.entered_at?' · wejście: '+new Date(r.entered_at).toLocaleTimeString('pl-PL',{timeZone:'Europe/Warsaw'}):''):'Sprawdź numer lub znajdź zgłoszenie po nazwisku.';
+ $('enter').hidden=r.result!=='valid';
+}
+$('enter').onclick=async()=>{
+ $('enter').disabled=true;
+ try{show(await api('POST',{ticket:current,action:'enter'}));}
+ catch(e){$('message').textContent=e.message;}
+ finally{$('enter').disabled=false;}
+};
+$('next').onclick=()=>{inspection++;paused=false;current=null;$('result').hidden=true;$('message').textContent='Gotowy na kolejny kod.';};
+$('manual').onsubmit=e=>{e.preventDefault();inspect($('ticketNumber').value.trim());};
+$('search').onsubmit=async e=>{
+ e.preventDefault();$('results').replaceChildren();
+ try{
+  const data=await api('GET',null,'/api/checkin?q='+encodeURIComponent($('query').value.trim()));
+  if(!data.tickets.length)$('results').textContent='Nie znaleziono wydanych wejściówek. Wejściówki są wydawane po potwierdzeniu udziału.';
+  for(const t of data.tickets){const b=document.createElement('button');b.type='button';b.textContent=t.name+' · osoba '+t.person_no+(t.checked_in_at?' · wykorzystana':'');b.onclick=()=>inspect(t.id);$('results').append(b);}
+ }catch(e){$('message').textContent=e.message;}
+};
+window.addEventListener('pagehide',stop);
+</script></body></html>

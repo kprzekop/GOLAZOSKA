@@ -1,3 +1,4 @@
+import {deliverPendingTickets,ticketUrl} from '../lib/tickets.js';
 import {advanceQueue} from '../lib/queue.js';
 import {applySeatPolicy} from '../lib/seat-policy.js';
 import {json,sql,sendMail,confirmUrl,tokenValid,escapeHtml} from '../lib/shared.js';
@@ -17,6 +18,7 @@ export default async function handler(req,res){
   }
   if(now>=new Date(EVENT_AT))return json(res,200,{done:true});
   const queue=await advanceQueue(db);promoted=queue.promoted;sent=queue.sent;failed=queue.failed;
+  const tickets=await deliverPendingTickets(db);sent+=tickets.sent;failed+=tickets.failed;
   if(now>=new Date(REMIND_FROM)&&now<new Date(CONFIRM_BY)){
    const reminders=await db`SELECT id,name,email,token,admission FROM premiere_reservations WHERE status='reserved' AND reminder_sent_at IS NULL ORDER BY created_at`;
    for(const r of reminders){
@@ -36,7 +38,7 @@ export default async function handler(req,res){
     try{
      await sendMail(r.email,'Przypomnienie o premierze – Goła Zośka 1812',
       '<p>Dzień dobry, '+escapeHtml(r.name)+'.</p><p>Rezerwacja potwierdzona: '+(r.admission==='standing'?'wejście dla '+r.seats+' osób bez gwarancji fotela; udział może odbyć się na stojąco':escapeHtml(seatLabel(r.seat_ids)))+
-      '.</p><p>'+EVENT_DESCRIPTION+'.</p><p>Jeśli nie możesz przyjść, <a href="'+confirmUrl(r.token)+'">anuluj rezerwację</a>.</p>');
+      '.</p><p>'+EVENT_DESCRIPTION+'.</p><p><a href="'+ticketUrl(r.token)+'">Pokaż wejściówki QR</a> — kody otrzymasz również w osobnej wiadomości.</p><p>Jeśli nie możesz przyjść, <a href="'+confirmUrl(r.token)+'">anuluj rezerwację</a>.</p>');
      await db`UPDATE premiere_reservations SET final_sent_at=now() WHERE id=${r.id}::uuid AND status='confirmed'`;sent++;
     }catch{failed++;}
    }

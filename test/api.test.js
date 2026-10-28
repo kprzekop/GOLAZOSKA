@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 import * as real from '../lib/shared.js';
-let db,mails=[],failMail=false;
+let db,mails=[],qrMails=[],failMail=false;
 mock.module('../lib/shared.js',{namedExports:{
  ...real,
  sql:()=>{
@@ -19,7 +19,7 @@ mock.module('../lib/shared.js',{namedExports:{
   });
   return tag;
  },
- sendMail:async(...args)=>{if(failMail)throw Error('MAIL');mails.push(args);}
+ sendMail:async(...args)=>{if(failMail)throw Error('MAIL');if(args[1]==='Twoje wejściówki QR – Goła Zośka 1812')qrMails.push(args);else mails.push(args);}
 }});
 const {default:reserve}=await import('../api/reserve.js');
 const {default:status}=await import('../api/status.js');
@@ -105,7 +105,8 @@ test('zadanie dzienne: prośba o potwierdzenie, termin zwolnienia, przypomnienie
   const [late]=(await db.query("SELECT * FROM premiere_create('Jan Kowalski','late@example.com','600123456',ARRAY['6-1'],1,false)")).rows;
   await db.query("SELECT * FROM premiere_action($1,'confirm')",[late.booking_token]);
   await time('2026-11-19T19:00:00+01:00');
-  assert.equal((await call(cron,'GET',{},{} ,'Bearer cron-test')).body.sent,1);
+  assert.equal((await call(cron,'GET',{},{} ,'Bearer cron-test')).body.sent,2);
+  assert.ok(qrMails.length>0);assert.equal(qrMails.at(-1)[3].length,1);
   assert.match(mails[1][2],/Kościelnej/);assert.match(mails[1][2],/rząd 6, miejsce 1/);
   await time('2026-12-22T19:00:00+01:00');
   assert.equal((await call(cron,'GET',{},{} ,'Bearer cron-test')).body.purged,true);
@@ -137,6 +138,7 @@ test('automatyczny obieg: rezygnacja, oferta fotela, uzupełnienie puli 20 i blo
   async function add(n,ids=[]){
    const [r]=(await db.query('SELECT * FROM premiere_create($1,$2,$3,$4::text[],$5,$6)',
     ['Jan Kowalski','queue'+(++seq)+'@example.com','600123456',ids,n,ids.length===0])).rows;
+   await db.query("UPDATE premiere_reservations SET created_at='2026-11-15 12:00+01'::timestamptz + $2 * interval '1 second' WHERE id=$1",[r.booking_id,seq]);
    await db.query("SELECT * FROM premiere_action($1,'confirm')",[r.booking_token]);return r;
   }
   const holder=await add(1,['6-1']);

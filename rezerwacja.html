@@ -22,6 +22,10 @@ async function load(){
     if(data.status==='waiting'&&data.emailVerified)state.textContent='Adres potwierdzony. Oczekujesz na ofertę. Przyjdź dopiero po otrzymaniu i przyjęciu zaproszenia.';
     if(data.offerExpiresAt&&data.status==='offered')state.textContent+=' Termin: '+new Date(data.offerExpiresAt).toLocaleString('pl-PL',{timeZone:'Europe/Warsaw'});
     actions.replaceChildren();
+    if(data.ticketsUrl){
+     const a=document.createElement('a');a.href=data.ticketsUrl;a.textContent='Pokaż wejściówki QR';actions.append(a,document.createElement('br'));
+     if(data.ticketMailPending)state.textContent+=' Wejściówki są dostępne pod linkiem. Ponowimy wysyłkę e-maila.';
+    }
     if(data.canConfirm) button(data.status==='offered'?'Przyjmuję propozycję':'Potwierdzam', 'confirm');
     if(data.canDecline)button('Zostaję bez fotela','decline');
     if(!['cancelled','expired'].includes(data.status)) button('Anuluję całe zgłoszenie','cancel');

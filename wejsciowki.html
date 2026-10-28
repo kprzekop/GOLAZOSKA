@@ -1,0 +1,30 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>Wejściówki – Goła Zośka</title><style>body{margin:0;background:#101716;color:#eee9de;font:18px/1.5 Arial,sans-serif}main{max-width:700px;margin:30px auto;padding:24px}a{color:#d4b58c}button,input{font:inherit;padding:12px;margin:6px 0}button{background:#d4b58c;color:#101716;border:0;cursor:pointer}button:disabled{opacity:.5}input{box-sizing:border-box;width:100%}label{display:block}section{margin:22px 0;padding:18px;border:1px solid #8e7b5e}[hidden]{display:none!important}.muted{font-size:15px;color:#c8c8bd}.good{border:3px solid #54c88b}.bad{border:3px solid #ed8077}h1{line-height:1.15}
+.ticket{background:white;color:#111;text-align:center;break-inside:avoid}.ticket img{width:min(100%,360px);height:auto}.number{font-size:13px;overflow-wrap:anywhere}
+@media print{body{background:white;color:black}main{margin:0;padding:0}button,.nav{display:none}.ticket{border:1px solid black}.muted{color:black}}</style></head><body><main>
+<a class="nav" href="/">← Strona filmu</a><h1>Twoje wejściówki</h1>
+<p>Goła Zośka 1812 · 21 listopada 2026, godz. 19:00<br>MDK, Rynek Zygmunta Augusta 9. Wejście od ul. Kościelnej, II piętro.</p>
+<p>Każdy kod jest dla jednej osoby. Pokaż go przy wejściu na ekranie lub wydruku. Nie udostępniaj go publicznie.</p>
+<p id="status" role="status">Pobieram wejściówki…</p><div id="tickets"></div><button id="print" hidden>Drukuj wejściówki</button>
+</main><script>
+const token=new URLSearchParams(location.search).get('token'),status=document.getElementById('status');
+document.getElementById('print').onclick=()=>window.print();
+(async()=>{
+ try{
+  if(!token)throw Error('Nieprawidłowy link. Otwórz link z e-maila.');
+  const r=await fetch('/api/tickets?token='+encodeURIComponent(token)),data=await r.json();
+  if(!r.ok)throw Error(data.error==='NOT_CONFIRMED'?'Wejściówki będą dostępne po potwierdzeniu udziału i przyznaniu wejścia.':'Nie można pobrać wejściówek. Sprawdź zgłoszenie lub spróbuj ponownie.');
+  for(const t of data.tickets){
+   const section=document.createElement('section');section.className='ticket';
+   const title=document.createElement('h2');title.textContent='Wejściówka '+t.person;
+   const label=document.createElement('p');label.textContent=t.seat?'Rząd '+t.seat.split('-')[0]+', miejsce '+t.seat.split('-')[1]:'Wejście na stojąco / bez gwarancji fotela';
+   const img=document.createElement('img');img.src='/api/tickets?ticket='+encodeURIComponent(t.id);img.alt='Kod QR dla osoby '+t.person;img.width=360;img.height=360;
+   const number=document.createElement('p');number.className='number';number.textContent='Numer: '+t.id;
+   section.append(title,label,img,number);
+   if(t.used){const used=document.createElement('p');used.textContent='Wejściówka została już wykorzystana.';section.append(used);}
+   document.getElementById('tickets').append(section);
+  }
+  status.textContent='Możesz przesłać drugiej osobie jej osobny kod z załącznika e-maila.';
+  document.getElementById('print').hidden=false;
+ }catch(e){status.textContent=e.message;}
+})();
+</script></body></html>
