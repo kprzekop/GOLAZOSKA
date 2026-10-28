@@ -42,14 +42,14 @@ test('API: formularz → baza → e-mail → weryfikacja → panel → anulowani
  try{
   process.env.RESERVATIONS_OPEN='false';assert.equal((await call(status)).body.open,false);
   process.env.RESERVATIONS_OPEN='true';
-  mock.timers.setTime(new Date('2026-11-05T17:59:59+01:00').getTime());
+  mock.timers.setTime(new Date('2026-11-05T15:59:59+01:00').getTime());
   const closed=await call(status);
   assert.equal(closed.body.open,false);
-  assert.equal(closed.body.opensAt,'2026-11-05T18:00:00+01:00');
+  assert.equal(closed.body.opensAt,'2026-11-05T16:00:00+01:00');
   assert.equal(closed.body.seats,undefined);
   assert.equal((await call(reserve,'POST',data)).body.error,'CLOSED');
   assert.equal(mails.length,0);
-  mock.timers.setTime(new Date('2026-11-05T18:00:00+01:00').getTime());
+  mock.timers.setTime(new Date('2026-11-05T16:00:00+01:00').getTime());
   assert.equal((await call(status)).body.open,true);
   process.env.RESERVATIONS_OPEN='false';
   assert.equal((await call(status)).body.open,false);
