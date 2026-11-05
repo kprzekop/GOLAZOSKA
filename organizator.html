@@ -8,11 +8,11 @@
 <button type="submit">Zaloguj się</button>
 <p class="muted">Hasłem jest dotychczasowy klucz organizatora. Po poprawnym logowaniu możesz zapisać je w menedżerze haseł przeglądarki.</p>
 </form>
-<section id="pools" hidden><h2>Ostatnie miejsca</h2><p>Możesz udostępnić lub wstrzymać niezajęte miejsca z puli rezerwacji online. Miejsca gościnne mają osobne drukowane wejściówki. Zwolnione miejsca obsługuje automatyczna kolejka.</p><div id="poolButtons"></div></section><label>Pokaż pulę: <select id="admissionFilter"><option value="all">Wszystkie zgłoszenia</option><option value="seated">Fotele</option><option value="standing">Bez gwarancji fotela</option><option value="waiting">Lista rezerwowa</option><option value="encore">Pierwszeństwo na drugi seans</option></select></label><p id="status" role="status"></p><p id="summary"></p>
+<section id="guests" hidden><h2>Miejsca gościnne</h2><p>Przypisz gościa do fotela lub pobierz jego kod QR. Przekazanie miejsca do rezerwacji online unieważnia dotychczasową wejściówkę.</p><label>Rząd <select id="guestRow"><option value="">Wszystkie</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label><p id="guestStatus" role="status"></p><table><thead><tr><th>Fotel</th><th>Imię i nazwisko</th><th>Działania</th></tr></thead><tbody id="guestSeats"></tbody></table></section><section id="pools" hidden><h2>Ostatnie miejsca</h2><p>Możesz udostępnić lub wstrzymać niezajęte miejsca z puli rezerwacji online. Miejsca gościnne mają osobne drukowane wejściówki. Zwolnione miejsca obsługuje automatyczna kolejka.</p><div id="poolButtons"></div></section><label>Pokaż pulę: <select id="admissionFilter"><option value="all">Wszystkie zgłoszenia</option><option value="seated">Fotele</option><option value="standing">Bez gwarancji fotela</option><option value="waiting">Lista rezerwowa</option><option value="encore">Pierwszeństwo na drugi seans</option></select></label><p id="status" role="status"></p><p id="summary"></p>
 <button id="export" hidden>Eksport CSV</button><button id="refresh" hidden>Odśwież</button>
 <section><table id="table" hidden><thead><tr><th>Data</th><th>Nazwisko</th><th>E-mail</th><th>Telefon</th><th>Osoby</th><th>Miejsca</th><th>Pula</th><th>Status</th><th>Działania</th></tr></thead><tbody></tbody></table></section>
 </main><script>
-let key='',rows=[];
+let key='',rows=[],guestSeats=[];
 const encoreEligible=r=>r.admission==='waiting'&&!!r.verified_at&&['waiting','expired'].includes(r.status);
 const kindLabel=k=>({seated:'Fotele',standing:'Bez gwarancji fotela',waiting:'Lista rezerwowa'}[k]||k);
 document.getElementById('admissionFilter').onchange=load;const status=document.getElementById('status');
@@ -30,6 +30,9 @@ async function load(savePassword=false){
       }catch{}
     }
     rows=d.reservations;
+    guestSeats=d.seats.filter(s=>s.pool==='organizational');
+    document.getElementById('guests').hidden=false;
+    renderGuests();
     document.getElementById('pools').hidden=false;const pools=document.getElementById('poolButtons');pools.replaceChildren();
     for(const s of d.seats.filter(s=>s.pool!=='organizational')){const b=document.createElement('button');b.textContent='Rząd '+s.row_no+', m. '+s.seat_no+': '+(s.taken?'zajęte':s.pool==='held'?'udostępnij':'wstrzymaj');b.disabled=s.taken;
     b.onclick=async()=>{if(!confirm(b.textContent+'?'))return;b.disabled=true;try{const r=await fetch('/api/admin',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({action:'pool',id:s.id,pool:s.pool==='held'?'public':'held'})});if(!r.ok)throw Error('Nie udało się zmienić puli.');await load();}catch(e){status.textContent=e.message;b.disabled=false;}};pools.append(b);}document.getElementById('table').hidden=false;
@@ -40,7 +43,7 @@ async function load(savePassword=false){
     document.getElementById('summary').textContent='Fotele publiczne: '+seated+' / '+d.config.public_capacity+
      ' · Bez gwarancji fotela: '+d.config.standing_used+' / '+d.config.standing_capacity+
      ' · Lista rezerwowa: '+waitingCount+' osób · Pula organizacyjna: '+d.config.guest_capacity+'. Oferty zwolnionych foteli otrzymują najpierw zweryfikowane osoby bez foteli. Kolejka i wiadomości są obsługiwane automatycznie po zwolnieniu miejsc oraz przez zadanie dzienne.';
-    const tbody=document.querySelector('tbody');tbody.replaceChildren();
+    const tbody=document.querySelector('#table tbody');tbody.replaceChildren();
     for(const row of rows){
       const filter=document.getElementById('admissionFilter').value;
       if(filter==='encore'?!encoreEligible(row):filter!=='all'&&row.admission!==filter)continue;
@@ -66,6 +69,56 @@ async function load(savePassword=false){
     }
     status.textContent='Lista aktualna.';
   }catch(err){status.textContent=err.message}
+}
+const guestStatus=document.getElementById('guestStatus');
+const guestRow=document.getElementById('guestRow');
+guestRow.onchange=renderGuests;
+function renderGuests(){
+  const list=document.getElementById('guestSeats');
+  list.replaceChildren();
+  for(const seat of guestSeats){
+    if(guestRow.value&&Number(guestRow.value)!==seat.row_no)continue;
+    const tr=list.insertRow();
+    const label='Rząd '+seat.row_no+', miejsce '+seat.seat_no;
+    tr.insertCell().textContent=label+(seat.checked_in_at?' · wejście wykorzystane':'');
+    const input=document.createElement('input');
+    input.value=seat.guest_name||'';
+    input.maxLength=120;
+    input.setAttribute('aria-label','Imię i nazwisko, '+label);
+    input.disabled=!seat.guest_ticket||!!seat.checked_in_at;
+    tr.insertCell().append(input);
+    const actions=tr.insertCell();
+    for(const [action,title] of [['guest_assign','Zapisz'],['guest_qr','Pobierz QR'],['guest_release','Przekaż do rezerwacji online']]){
+      const button=document.createElement('button');
+      button.type='button';
+      button.textContent=title;
+      button.disabled=input.disabled;
+      button.onclick=async()=>{
+        if(action==='guest_release'&&!confirm(label+' trafi do rezerwacji online, a drukowany kod przestanie działać. Przekazać miejsce?'))return;
+        button.disabled=true;
+        guestStatus.textContent='';
+        try{
+          const response=await fetch('/api/admin',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({action,id:seat.id,name:input.value})});
+          if(!response.ok)throw Error('Operacja nie powiodła się. Odśwież panel i sprawdź stan miejsca.');
+          if(action==='guest_qr'){
+            const {png}=await response.json();
+            const link=document.createElement('a');
+            link.href='data:image/png;base64,'+png;
+            link.download='Gola-Zoska-rzad-'+seat.row_no+'-miejsce-'+seat.seat_no+'.png';
+            link.click();
+          }else if(action==='guest_release'){
+            await load();
+            guestStatus.textContent=label+' przekazano do rezerwacji online.';
+          }else{
+            seat.guest_name=input.value.trim();
+            guestStatus.textContent='Zapisano przypisanie. '+label+'.';
+          }
+        }catch(error){guestStatus.textContent=error.message;}
+        finally{button.disabled=false;}
+      };
+      actions.append(button);
+    }
+  }
 }
 document.getElementById('export').onclick=()=>{
   const fields=['created_at','name','email','phone','seats','seat_ids','admission','offer_target','status','verified_at','reminder_sent_at','offer_expires_at'];
