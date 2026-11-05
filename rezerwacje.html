@@ -27,6 +27,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 <p>Przygotowujemy terminy kolejnych seansów. Rezerwacja miejsc ruszy wkrótce.</p>
 <p>Propozycje miejsc na kolejne seanse wyślemy e-mailem w pierwszej kolejności osobom z listy rezerwowej oraz tym, które wybiorą wejście bez fotela i zaznaczą poniżej opcję pierwszeństwa.</p>
 </section>
+<p><a href="/rezerwacje.html?kolejne=1" id="interestLink">Zapisz się na kolejne seanse</a></p>
 <section id="rules" aria-label="Jak zarezerwować">
 <h2>Jak to działa?</h2>
 <ol><li>Wybierz od 1 do 2 miejsc i podaj dane.</li><li>Kliknij link w e-mailu, aby potwierdzić zgłoszenie.</li><li id="confirmationRule"></li></ol>
@@ -34,7 +35,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 </section>
 <p id="availability" aria-live="polite">Sprawdzam dostępność…</p>
 <form id="form" class="hidden">
- <h2>1. Wybierz wejście</h2>
+ <div id="premiereOptions"><h2>1. Wybierz wejście</h2>
  <div id="seatedChoice">
  <p>Wybierz od 1 do 2 zielonych foteli. Rząd 1 jest najbliżej ekranu.</p>
  <div class="screen">EKRAN</div><div id="seatmap" class="seatmap" role="group" aria-label="Plan sali"></div>
@@ -51,7 +52,9 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
  <label class="inline hidden" id="encoreChoice"><input id="encorePriority" type="checkbox" disabled><span>Chcę otrzymać w pierwszej kolejności propozycję miejsc siedzących na kolejny seans. Zachowuję wejście na premierę bez gwarancji fotela.</span></label>
  <label class="inline"><input id="standingConsent" type="checkbox"><span id="consentText"></span></label>
  </div></div>
- <h2>2. Podaj dane</h2>
+ </div>
+ <div id="interestOptions" class="hidden"><label for="interestSeats">Liczba osób</label><select id="interestSeats"><option>1</option><option>2</option></select></div>
+ <h2 id="contactHeading">2. Podaj dane</h2>
  <label for="name">Imię i nazwisko</label><input id="name" name="name" maxlength="120" minlength="2" required autocomplete="name">
  <label for="email">Adres e-mail</label><input id="email" name="email" type="email" maxlength="254" required autocomplete="email">
  <label for="phone">Numer telefonu</label><input id="phone" name="phone" type="tel" maxlength="25" required autocomplete="tel" placeholder="np. 600 123 456">
@@ -67,6 +70,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 const form=document.getElementById('form'),message=document.getElementById('message'),availability=document.getElementById('availability');
 const selected=new Set(),waiting=document.getElementById('waiting'),map=document.getElementById('seatmap');
 let seatData=[],widget,standingAvailable=0;
+const interestMode=new URLSearchParams(location.search).get('kolejne')==='1';
 function verificationText(now=new Date()){
  const end=new Date('2026-11-21T19:00:00+01:00'),cutoff=new Date('2026-11-18T19:00:00+01:00');
  const deadline=new Date(Math.min(now.getTime()+86400000,end.getTime(),now<cutoff?cutoff.getTime():Infinity));
@@ -115,6 +119,24 @@ function render(){
  document.getElementById('selected').textContent=selected.size?'Twój wybór: '+[...selected].map(id=>'rząd '+id.split('-')[0]+', miejsce '+id.split('-')[1]).join('; '):'Nie wybrano miejsc.';
 }
 async function load(){
+ if(interestMode){
+  document.querySelector('h1').textContent='Zapisz się na kolejne seanse';
+  document.querySelector('.eyebrow').textContent='Goła Zośka 1812';
+  document.getElementById('rules').hidden=true;
+  document.getElementById('interestLink').textContent='Wróć do rezerwacji na premierę';
+  document.getElementById('interestLink').href='/rezerwacje.html';
+  document.getElementById('premiereOptions').classList.add('hidden');
+  document.getElementById('interestOptions').classList.remove('hidden');
+  document.getElementById('contactHeading').textContent='Podaj dane kontaktowe';
+  document.getElementById('verificationRule').textContent='Potwierdź zapis przez link w e-mailu w ciągu 24 godzin.';
+  document.getElementById('submit').textContent='Zapisz się na kolejne seanse';
+  const response=await fetch('/api/reserve?interest=true'),data=await response.json();
+  if(!response.ok||!data.siteKey)throw Error('Nie można teraz przyjmować zgłoszeń. Spróbuj później.');
+  showChallenge(data.siteKey);
+  availability.textContent='Zapis dotyczy kolejnych seansów. Propozycje wyślemy po ustaleniu terminów, w miarę dostępności miejsc.';
+  form.classList.remove('hidden');
+  return;
+ }
  const r=await fetch('/api/status'),d=await r.json();
  if(!r.ok)throw Error('Nie można teraz sprawdzić miejsc. Spróbuj później.');
  if(!d.open){
@@ -135,9 +157,12 @@ async function load(){
  if(!hasSeats){document.getElementById('alternativeChoice').classList.remove('hidden');waiting.checked=true;setWaiting();}
  updateRules();updateVariant();render();form.classList.remove('hidden');
  availability.textContent=hasSeats?'':standingAvailable>0?'Fotele są zajęte. Możesz zarezerwować wejście na stojąco.':'Wszystkie wejścia są zajęte. Możesz zapisać się na listę rezerwową.';
+ showChallenge(d.siteKey);
+}
+function showChallenge(siteKey){
  if(!document.getElementById('turnstile-script')){
   const s=document.createElement('script');s.id='turnstile-script';s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-  s.onload=()=>{widget=window.turnstile.render('#challenge',{sitekey:d.siteKey,theme:'dark'});};document.head.append(s);
+  s.onload=()=>{widget=window.turnstile.render('#challenge',{sitekey:siteKey,theme:'dark'});};document.head.append(s);
  }
 }
 waiting.onchange=setWaiting;
@@ -148,15 +173,17 @@ form.addEventListener('submit',async e=>{
  e.preventDefault();message.textContent='';
  const p=normalize(document.getElementById('phone').value),repeat=normalize(document.getElementById('phoneRepeat').value);
  if(!/^\+?[0-9]{9,15}$/.test(p)||p!==repeat){message.textContent='Wpisz poprawny numer telefonu identycznie w obu polach.';return;}
- if(waiting.checked&&!document.getElementById('standingConsent').checked){message.textContent='Potwierdź zasady wejścia bez gwarancji fotela i listy rezerwowej.';return;}
- if(!waiting.checked&&!selected.size){message.textContent='Wybierz przynajmniej jedno miejsce.';return;}
+ if(!interestMode&&waiting.checked&&!document.getElementById('standingConsent').checked){message.textContent='Potwierdź zasady wejścia bez gwarancji fotela i listy rezerwowej.';return;}
+ if(!interestMode&&!waiting.checked&&!selected.size){message.textContent='Wybierz przynajmniej jedno miejsce.';return;}
  const button=document.getElementById('submit');button.disabled=true;
  try{
   const body={...Object.fromEntries(new FormData(form)),seatIds:[...selected],waiting:waiting.checked,encorePriority:!document.getElementById('encorePriority').disabled&&document.getElementById('encorePriority').checked,acceptStanding:document.getElementById('standingConsent').checked};
+  if(interestMode)Object.assign(body,{screeningInterest:true,seats:document.getElementById('interestSeats').value});
   const r=await fetch('/api/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();
   const errors={DUPLICATE:'Ten e-mail ma już aktywne zgłoszenie. Sprawdź skrzynkę.',SEATS_UNAVAILABLE:'Ktoś właśnie zarezerwował wybrane miejsca. Wybierz inne na odświeżonym planie.',CHALLENGE:'Potwierdź zabezpieczenie formularza.',INVALID_INPUT:'Sprawdź dane i zgodność obu numerów telefonu.',MAIL_UNAVAILABLE:'Nie udało się wysłać wiadomości. Zgłoszenie zostało anulowane; spróbuj ponownie.'};
   if(!r.ok){if(d.error==='SEATS_UNAVAILABLE')await load();throw Error(errors[d.error]||'Nie udało się przyjąć zgłoszenia. Spróbuj później.');}
   form.classList.add('hidden');availability.textContent='';
+  if(d.admission==='interest'){message.textContent='Sprawdź skrzynkę i potwierdź zapis przez link w e-mailu w ciągu 24 godzin.';return;}
   message.textContent=(d.admission==='waiting'
    ?'Zgłoszenie na listę rezerwową przyjęte. Przyjdź dopiero po otrzymaniu i przyjęciu propozycji. '
    :d.admission==='standing'?'Przyjęto zgłoszenie wejścia na pokaz; udział może odbyć się na stojąco. '
