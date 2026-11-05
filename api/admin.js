@@ -67,6 +67,9 @@ export default async function handler(req,res){
    r.phone,r.seats,r.status,r.admission,r.offer_target,r.upgrade_declined_at,r.created_at,r.verified_at,
    r.reminder_sent_at,r.offer_expires_at,ARRAY(SELECT s.id FROM premiere_seats s WHERE s.reservation_id=r.id ORDER BY s.row_no,s.seat_no) AS seat_ids
    FROM premiere_reservations r ORDER BY r.created_at,r.id`;
+  const [interestTable]=await db`SELECT to_regclass('public.additional_screening_interest') IS NOT NULL AS ready`;
+  if(interestTable.ready)reservations.push(...await db`SELECT id,name,email,phone,seats,created_at,verified_at,
+   'interest' AS admission,'verified' AS status FROM additional_screening_interest WHERE verified_at IS NOT NULL ORDER BY created_at,id`);
   const [cfg]=await db`SELECT public_capacity,guest_capacity,physical_capacity,standing_capacity,premiere_standing_used() AS standing_used FROM premiere_config WHERE id=1`;
   const seats=await db`SELECT s.id,s.row_no,s.seat_no,s.pool,(s.reservation_id IS NOT NULL) AS taken,
    t.guest_name,t.checked_in_at,(t.id IS NOT NULL AND NOT t.revoked) AS guest_ticket
