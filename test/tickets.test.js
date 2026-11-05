@@ -111,3 +111,24 @@ test('62 zaproszenia organizatora: pełny plan 1–5, trwałe kody i wspólna ko
   assert.equal((await db.query('SELECT count(*)::int n FROM premiere_organizational_tickets')).rows[0].n,62);
  }finally{delete process.env.ORGANIZATIONAL_TICKETS_JSON;await db.close();}
 });
+
+test('nowy plan zachowuje kody gości, blokuje konflikt i unieważnia stare zaproszenie z rzędu 1',async()=>{
+ await setup();try{
+  const {randomUUID}=await import('node:crypto');
+  const old=[12,13,12,13,12].flatMap((n,i)=>Array.from({length:n},(_,j)=>({id:randomUUID(),seat:(i+1)+'-'+(j+1)})));
+  process.env.ORGANIZATIONAL_TICKETS_JSON=JSON.stringify(old);
+  const inspect=entry=>call(checkin,'POST',{ticket:entry.id,action:'inspect'},{},'Bearer door-test');
+  assert.equal((await inspect(old[0])).body.result,'valid');
+  const extra=[...Array.from({length:13},(_,i)=>'6-'+(i+1)),'7-6','7-7','7-8'].map(seat=>({seat,id:randomUUID()}));
+  process.env.ORGANIZATIONAL_TICKETS_LAYOUT_V2=JSON.stringify([...old.slice(12),...extra]);
+  const existing=await create(['6-1']);
+  assert.equal((await inspect(old[0])).code,503);
+  await db.query("SELECT * FROM premiere_action($1,'cancel')",[existing.booking_token]);
+  assert.equal((await inspect(old[0])).body.result,'invalid');
+  for(const e of [old[12],extra[0],extra.at(-1)]){
+   const result=(await inspect(e)).body;assert.equal(result.result,'valid');assert.equal(result.seat_id,e.seat);
+  }
+  const publicSeats=(await db.query("SELECT id FROM premiere_seats WHERE pool='public' ORDER BY row_no,seat_no")).rows.map(r=>r.id);
+  assert.deepEqual(publicSeats,[...Array.from({length:12},(_,i)=>'1-'+(i+1)),'7-1','7-2','7-3','7-4','7-5']);
+ }finally{delete process.env.ORGANIZATIONAL_TICKETS_JSON;delete process.env.ORGANIZATIONAL_TICKETS_LAYOUT_V2;await db.close();}
+});
