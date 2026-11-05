@@ -6,6 +6,16 @@ ALTER TABLE premiere_reservations ADD COLUMN IF NOT EXISTS encore_priority boole
 ALTER TABLE additional_screenings
  ADD COLUMN IF NOT EXISTS invitations_open boolean NOT NULL DEFAULT false;
 
+CREATE TABLE IF NOT EXISTS additional_screening_interest (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ name text NOT NULL,
+ email text NOT NULL UNIQUE,
+ phone text NOT NULL,
+ seats integer NOT NULL CHECK (seats BETWEEN 1 AND 2),
+ created_at timestamptz NOT NULL DEFAULT now(),
+ verified_at timestamptz
+);
+
 CREATE TABLE IF NOT EXISTS additional_screening_bookings (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  screening_id integer NOT NULL REFERENCES additional_screenings(id),
@@ -55,7 +65,7 @@ $$;
 CREATE OR REPLACE FUNCTION additional_screening_offer(p_screening integer) RETURNS uuid LANGUAGE plpgsql AS $$
 DECLARE
  showtime timestamptz;
- applicant premiere_reservations%ROWTYPE;
+ applicant record;
  available integer;
  booking uuid;
 BEGIN
@@ -67,12 +77,14 @@ BEGIN
  IF showtime IS NULL THEN RETURN NULL; END IF;
  SELECT count(*) INTO available FROM additional_screening_seats
  WHERE screening_id=p_screening AND pool='public' AND booking_id IS NULL;
- SELECT r.* INTO applicant FROM premiere_reservations r
- WHERE r.verified_at IS NOT NULL
- AND ((r.admission='waiting' AND r.status IN ('waiting','expired'))
-  OR (r.encore_priority AND r.admission IN ('standing','seated') AND r.status IN ('reserved','confirmed','expired')))
- AND NOT EXISTS (
-  SELECT 1 FROM additional_screening_bookings b WHERE b.source_id=r.id
+ SELECT r.* INTO applicant FROM (
+  SELECT id,name,email,seats,created_at FROM premiere_reservations
+  WHERE verified_at IS NOT NULL AND ((admission='waiting' AND status IN ('waiting','expired'))
+   OR (encore_priority AND admission IN ('standing','seated') AND status IN ('reserved','confirmed','expired')))
+  UNION ALL
+  SELECT id,name,email,seats,created_at FROM additional_screening_interest WHERE verified_at IS NOT NULL
+ ) r WHERE NOT EXISTS (
+  SELECT 1 FROM additional_screening_bookings b WHERE (b.email=r.email OR b.source_id=r.id)
   AND (b.screening_id=p_screening OR b.status IN ('offered','confirmed'))
  )
  ORDER BY r.created_at,r.id LIMIT 1;
