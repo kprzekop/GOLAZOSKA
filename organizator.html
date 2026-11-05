@@ -18,7 +18,7 @@
 <section><table id="table" hidden><thead><tr><th>Data</th><th>Nazwisko</th><th>E-mail</th><th>Telefon</th><th>Osoby</th><th>Miejsca</th><th>Pula</th><th>Status</th><th>Działania</th></tr></thead><tbody></tbody></table></section>
 </main><script>
 let key='',rows=[],guestSeats=[];
-const encoreEligible=r=>!!r.verified_at&&((r.admission==='waiting'&&['waiting','expired'].includes(r.status))||(r.encore_priority&&['standing','seated'].includes(r.admission)&&['reserved','confirmed','expired'].includes(r.status)));
+const encoreEligible=r=>r.admission==='interest'||!!r.verified_at&&((r.admission==='waiting'&&['waiting','expired'].includes(r.status))||(r.encore_priority&&['standing','seated'].includes(r.admission)&&['reserved','confirmed','expired'].includes(r.status)));
 const screeningDate=new Intl.DateTimeFormat('pl-PL',{dateStyle:'long',timeStyle:'short',timeZone:'Europe/Warsaw'});
 const screeningPools={organizational:'Organizator',public:'Pula internetowa',held:'Wstrzymane'};
 function showScreeningPlans(screenings,settings){
@@ -94,7 +94,7 @@ function showScreeningPlans(screenings,settings){
     plans.append(details);
   }
 }
-const kindLabel=k=>({seated:'Fotele',standing:'Bez gwarancji fotela',waiting:'Lista rezerwowa'}[k]||k);
+const kindLabel=k=>({seated:'Fotele',standing:'Bez gwarancji fotela',waiting:'Lista rezerwowa',interest:'Kolejne seanse'}[k]||k);
 document.getElementById('admissionFilter').onchange=load;const status=document.getElementById('status');
 document.getElementById('auth').onsubmit=e=>{e.preventDefault();key=document.getElementById('key').value;load(true)};
 document.getElementById('refresh').onclick=load;
@@ -133,7 +133,7 @@ async function load(savePassword=false){
         const td=document.createElement('td');td.textContent=value;tr.append(td);
       }
       const actions=document.createElement('td');
-      for(const [label,action] of [['Potwierdź','confirm'],['Zaproponuj','offer'],['Anuluj i zwolnij','cancel'],['Anuluj i zablokuj fotele','cancel_hold']]){
+      for(const [label,action] of row.admission==='interest'?[]:[['Potwierdź','confirm'],['Zaproponuj','offer'],['Anuluj i zwolnij','cancel'],['Anuluj i zablokuj fotele','cancel_hold']]){
         if((action==='offer'&&(!row.verified_at||!(row.status==='waiting'||(row.admission==='standing'&&!row.upgrade_declined_at&&['reserved','confirmed'].includes(row.status)))))||(action==='confirm'&&!['verification','reserved','offered'].includes(row.status))||(['cancel','cancel_hold'].includes(action)&&['cancelled','expired'].includes(row.status))||(action==='cancel_hold'&&!(row.seat_ids||[]).length))continue;
         const b=document.createElement('button');b.textContent=label;
         b.onclick=async()=>{
