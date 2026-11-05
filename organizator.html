@@ -1,5 +1,5 @@
 <!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>Lista rezerwacji – organizator</title>
-<style>:root{color-scheme:dark}body{background:#101716;color:#e8e4d9;font:16px/1.45 Arial,sans-serif;margin:28px}main{max-width:1250px;margin:auto}input,button{font:inherit;padding:9px}button{cursor:pointer;background:#c8a77b;color:#101716;border:0;margin:3px}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid #777;padding:10px}section{overflow-x:auto}.muted{color:#b7b7a8}#status{min-height:2em}</style><link rel="icon" type="image/webp" sizes="640x640" href="/favicon.webp?v=20261027">
+<style>:root{color-scheme:dark}body{background:#101716;color:#e8e4d9;font:16px/1.45 Arial,sans-serif;margin:28px}main{max-width:1250px;margin:auto}input,button{font:inherit;padding:9px}button{cursor:pointer;background:#c8a77b;color:#101716;border:0;margin:3px}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid #777;padding:10px}section{overflow-x:auto}.muted{color:#b7b7a8}#status{min-height:2em}.guest-assigned td{background:#203a2d}.guest-saved{display:block;color:#b8e7bc;font-size:.85rem;margin-top:4px}</style><link rel="icon" type="image/webp" sizes="640x640" href="/favicon.webp?v=20261027">
 </head><body><main>
 <h1>Goła Zośka – organizator</h1><p><a href='/kontrola.html'>Kontrola wejściówek QR →</a></p><p class="muted">Ten adres nie jest publicznie linkowany. Listę chroni hasło serwerowe. Nigdy nie przesyłaj go widzom.</p>
 <form id="auth" action="/organizator.html" method="post" autocomplete="on">
@@ -86,7 +86,22 @@ function renderGuests(){
     input.maxLength=120;
     input.setAttribute('aria-label','Imię i nazwisko, '+label);
     input.disabled=!seat.guest_ticket||!!seat.checked_in_at;
-    tr.insertCell().append(input);
+    const nameCell=tr.insertCell();
+    const saved=document.createElement('span');
+    saved.className='guest-saved';
+    saved.setAttribute('role','status');
+    function showAssignment(label){
+      tr.classList.toggle('guest-assigned',Boolean(seat.guest_name));
+      saved.textContent=label;
+    }
+    showAssignment(seat.guest_name?'Przypisano':'');
+    input.addEventListener('input',()=>{
+      if(input.value.trim()!== (seat.guest_name||'')){
+        tr.classList.remove('guest-assigned');
+        saved.textContent='Niezapisane zmiany';
+      }else showAssignment(seat.guest_name?'Przypisano':'');
+    });
+    nameCell.append(input,saved);
     const actions=tr.insertCell();
     for(const [action,title] of [['guest_assign','Zapisz'],['guest_qr','Pobierz QR'],['guest_release','Przekaż do rezerwacji online']]){
       const button=document.createElement('button');
@@ -95,10 +110,12 @@ function renderGuests(){
       button.disabled=input.disabled;
       button.onclick=async()=>{
         if(action==='guest_release'&&!confirm(label+' trafi do rezerwacji online, a drukowany kod przestanie działać. Przekazać miejsce?'))return;
+        const submittedName=input.value;
         button.disabled=true;
+        if(action==='guest_assign')input.disabled=true;
         guestStatus.textContent='';
         try{
-          const response=await fetch('/api/admin',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({action,id:seat.id,name:input.value})});
+          const response=await fetch('/api/admin',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({action,id:seat.id,name:submittedName})});
           if(!response.ok)throw Error('Operacja nie powiodła się. Odśwież panel i sprawdź stan miejsca.');
           if(action==='guest_qr'){
             const {png}=await response.json();
@@ -110,11 +127,12 @@ function renderGuests(){
             await load();
             guestStatus.textContent=label+' przekazano do rezerwacji online.';
           }else{
-            seat.guest_name=input.value.trim();
+            seat.guest_name=submittedName.trim();
+            showAssignment('Zapisano');
             guestStatus.textContent='Zapisano przypisanie. '+label+'.';
           }
         }catch(error){guestStatus.textContent=error.message;}
-        finally{button.disabled=false;}
+        finally{button.disabled=false;if(action==='guest_assign')input.disabled=false;}
       };
       actions.append(button);
     }
