@@ -22,6 +22,11 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 <a href="/">← Strona filmu</a><p class="eyebrow">Premiera · 21 listopada 2026 · godz. 19:00</p>
 <h1>Zarezerwuj wejście na premierę</h1>
 <p><strong>Wstęp bezpłatny.</strong> Sala widowiskowa MDK, Rynek Zygmunta Augusta 9.<br>Wejście od ul. Kościelnej, II piętro.</p>
+<section aria-labelledby="additional-screenings">
+<h2 id="additional-screenings">Kolejne seanse</h2>
+<p>Przygotowujemy terminy kolejnych seansów. Rezerwacja miejsc ruszy wkrótce.</p>
+<p>Osobom zapisanym na listę rezerwową w pierwszej kolejności wyślemy e-mailem propozycję rezerwacji miejsc na kolejny seans.</p>
+</section>
 <section id="rules" aria-label="Jak zarezerwować">
 <h2>Jak to działa?</h2>
 <ol><li>Wybierz od 1 do 2 miejsc i podaj dane.</li><li>Kliknij link w e-mailu, aby potwierdzić zgłoszenie.</li><li id="confirmationRule"></li></ol>
@@ -74,7 +79,7 @@ function updateRules(){
 function updateVariant(){
  const isStanding=Number(document.getElementById('seats').value)<=standingAvailable;
  document.getElementById('alternativeLabel').textContent=standingAvailable>0?'Wybieram wejście na stojąco':'Zapisuję się na listę rezerwową';
- document.getElementById('overflowAvailability').textContent=isStanding?'Wejście na pokaz bez gwarancji fotela. Jeśli zwolnią się miejsca siedzące, wyślemy propozycję.':'Lista rezerwowa nie uprawnia do wejścia. Przyjdź dopiero po otrzymaniu i przyjęciu propozycji. Całą grupę zapisujemy razem. Planujemy dodatkowy seans. Gdy ustalimy termin, osoby nadal oczekujące na liście otrzymają propozycje wejściówek w pierwszej kolejności, według kolejności zgłoszeń.';
+ document.getElementById('overflowAvailability').textContent=isStanding?'Wejście na pokaz bez gwarancji fotela. Jeśli zwolnią się miejsca siedzące, wyślemy propozycję.':'Lista rezerwowa nie uprawnia do wejścia. Przyjdź dopiero po otrzymaniu i przyjęciu propozycji. Całą grupę zapisujemy razem.';
  document.getElementById('consentText').textContent=isStanding?'Rozumiem, że mogę uczestniczyć na stojąco.':'Rozumiem, że zapis na listę rezerwową nie gwarantuje wejścia.';
  document.getElementById('submit').textContent=waiting.checked?(isStanding?'Zarezerwuj wejście na stojąco':'Zapisz na listę rezerwową'):'Zarezerwuj miejsca';
  document.getElementById('standingConsent').required=waiting.checked;
