@@ -16,6 +16,7 @@ mock.module('../lib/shared.js',{namedExports:{...shared,sql,sendMail:async(...ar
 const {ADMISSION_SCHEMA}=await import('../lib/admission-schema.js');
 const {TICKET_SCHEMA}=await import('../lib/ticket-schema.js');
 const {ensureTickets,deliverTickets,qrPng,ticketPayload}=await import('../lib/tickets.js');
+const {default:admin}=await import('../api/admin.js');
 const {default:checkin}=await import('../api/checkin.js');
 const {default:tickets}=await import('../api/tickets.js');
 const base=await readFile(new URL('../db/schema.sql',import.meta.url),'utf8');
@@ -130,5 +131,16 @@ test('nowy plan zachowuje kody gości, blokuje konflikt i unieważnia stare zapr
   }
   const publicSeats=(await db.query("SELECT id FROM premiere_seats WHERE pool='public' ORDER BY row_no,seat_no")).rows.map(r=>r.id);
   assert.deepEqual(publicSeats,[...Array.from({length:12},(_,i)=>'1-'+(i+1)),'7-1','7-2','7-3','7-4','7-5']);
+  const manage=(action,id,name)=>call(admin,'POST',{action,id,name},{},'Bearer admin-test');
+  const guest=old.find(e=>e.seat==='5-1');
+  assert.equal((await manage('guest_assign',guest.seat,'Anna Testowa')).code,200);
+  assert.equal((await inspect(guest)).body.guest_name,'Anna Testowa');
+  assert.ok((await manage('guest_qr',guest.seat)).body.png);
+  const releases=await Promise.all([manage('guest_release',guest.seat),manage('guest_release',guest.seat)]);
+  assert.deepEqual(releases.map(r=>r.code).sort(),[200,409]);
+  assert.equal((await inspect(guest)).body.result,'invalid');
+  assert.equal((await db.query("SELECT pool FROM premiere_seats WHERE id='5-1'")).rows[0].pool,'public');
+  assert.equal((await db.query('SELECT guest_capacity FROM premiere_config')).rows[0].guest_capacity,65);
+
  }finally{delete process.env.ORGANIZATIONAL_TICKETS_JSON;delete process.env.ORGANIZATIONAL_TICKETS_LAYOUT_V2;await db.close();}
 });
