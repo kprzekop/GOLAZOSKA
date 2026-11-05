@@ -141,6 +141,15 @@ test('nowy plan zachowuje kody gości, blokuje konflikt i unieważnia stare zapr
   assert.equal((await inspect(guest)).body.result,'invalid');
   assert.equal((await db.query("SELECT pool FROM premiere_seats WHERE id='5-1'")).rows[0].pool,'public');
   assert.equal((await db.query('SELECT guest_capacity FROM premiere_config')).rows[0].guest_capacity,65);
+  await db.query("UPDATE premiere_seats SET pool='held' WHERE row_no=1 AND seat_no<=8");
+  const rowOne=Array.from({length:8},(_,i)=>({seat:'1-'+(i+1),id:randomUUID()}));
+  process.env.ORGANIZATIONAL_TICKETS_ROW_ONE=JSON.stringify(rowOne);
+  assert.equal((await inspect(rowOne[0])).body.result,'valid');
+  assert.equal((await inspect(old[0])).body.result,'not_found');
+  assert.equal((await manage('guest_assign',rowOne[0].seat,'Nowy Gość')).code,200);
+  assert.equal((await manage('guest_release',rowOne[0].seat)).code,200);
+  assert.equal((await inspect(rowOne[0])).body.result,'invalid');
 
- }finally{delete process.env.ORGANIZATIONAL_TICKETS_JSON;delete process.env.ORGANIZATIONAL_TICKETS_LAYOUT_V2;await db.close();}
+
+ }finally{delete process.env.ORGANIZATIONAL_TICKETS_JSON;delete process.env.ORGANIZATIONAL_TICKETS_LAYOUT_V2;delete process.env.ORGANIZATIONAL_TICKETS_ROW_ONE;await db.close();}
 });
