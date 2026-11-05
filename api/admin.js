@@ -11,7 +11,7 @@ export default async function handler(req,res){
   if(req.method==='POST'){
    const {id,action,pool}=req.body||{};
    if(action==='pool'){
-    if(typeof id!=='string'||!/^([6-7])-([1-9]|1[0-3])$/.test(id)||!['held','public'].includes(pool))
+    if(typeof id!=='string'||!/^([1-7])-([1-9]|1[0-3])$/.test(id)||!['held','public'].includes(pool))
      return json(res,400,{error:'INVALID_INPUT'});
     await db`SELECT premiere_set_pool(${id},${pool})`;if(pool==='public')await advanceQueue(db);return json(res,200,{ok:true});
    }
