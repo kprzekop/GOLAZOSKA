@@ -21,13 +21,16 @@ export default async function handler(req,res){
   if(now>=new Date(EVENT_AT))return json(res,200,{done:true,additional});
   const queue=await advanceQueue(db);promoted=queue.promoted;sent=queue.sent;failed=queue.failed;
   const tickets=await deliverPendingTickets(db);sent+=tickets.sent;failed+=tickets.failed;
-  if(now>=new Date(REMIND_FROM)&&now<new Date(CONFIRM_BY)){
-   const reminders=await db`SELECT id,name,email,token,admission FROM premiere_reservations WHERE status='reserved' AND reminder_sent_at IS NULL ORDER BY created_at`;
+  if(now<new Date(CONFIRM_BY)){
+   const canConfirm=now>=new Date(REMIND_FROM);
+   const reminders=await db`SELECT id,name,email,token,admission FROM premiere_reservations WHERE status='reserved'
+    AND COALESCE(reminder_sent_at,verified_at,created_at)<=now()-interval '5 days' ORDER BY created_at`;
    for(const r of reminders){
     try{
-     await sendMail(r.email,'Potwierdź udział do 18 listopada, godz. 19:00 – Goła Zośka',
-      '<p>Dzień dobry, '+escapeHtml(r.name)+'.</p><p>'+EVENT_DESCRIPTION+'.</p><p>'+(r.admission==='standing'?'Twoje wejście nie gwarantuje fotela; udział może odbyć się na stojąco.':'Masz rezerwację miejsca siedzącego.')+'</p><p><a href="'+confirmUrl(r.token)+
-      '">Potwierdź udział</a> do '+DEADLINE_LABEL+'. Brak potwierdzenia zwalnia miejsca do ponownej rezerwacji.</p>');
+     await sendMail(r.email,canConfirm?'Potwierdź udział do 18 listopada, godz. 19:00 – Goła Zośka':'Przypomnienie o rezerwacji – Goła Zośka',
+      '<p>Dzień dobry, '+escapeHtml(r.name)+'.</p><p>'+EVENT_DESCRIPTION+'.</p><p>'+(r.admission==='standing'?'Twoje wejście nie gwarantuje fotela; udział może odbyć się na stojąco.':'Masz rezerwację miejsca siedzącego.')+'</p>'+
+      (canConfirm?'<p><a href="'+confirmUrl(r.token)+'">Potwierdź udział</a> do '+DEADLINE_LABEL+'. Brak potwierdzenia zwalnia miejsca.</p>'
+       :'<p>Udział będzie można potwierdzić od 14 listopada, godz. 19:00, do '+DEADLINE_LABEL+'. Zachowaj <a href="'+confirmUrl(r.token)+'">link do rezerwacji</a>.</p>'));
      await db`UPDATE premiere_reservations SET reminder_sent_at=now() WHERE id=${r.id}::uuid AND status='reserved'`;sent++;
     }catch{failed++;}
    }
