@@ -1,3 +1,4 @@
+import {additionalScreeningsReady} from '../lib/additional-screenings.js';
 import {deliverTickets,qrPng} from '../lib/tickets.js';
 import {advanceQueue} from '../lib/queue.js';
 import {applySeatPolicy} from '../lib/seat-policy.js';
@@ -69,7 +70,19 @@ export default async function handler(req,res){
   const seats=await db`SELECT s.id,s.row_no,s.seat_no,s.pool,(s.reservation_id IS NOT NULL) AS taken,
    t.guest_name,t.checked_in_at,(t.id IS NOT NULL AND NOT t.revoked) AS guest_ticket
    FROM premiere_seats s LEFT JOIN premiere_organizational_tickets t ON t.seat_id=s.id ORDER BY s.row_no,s.seat_no`;
-  return json(res,200,{config:cfg,reservations,seats});
+  const [layouts]=await db`SELECT to_regclass('public.additional_screening_seats') IS NOT NULL AS ready`;
+  const screenings=layouts.ready?await db`SELECT s.id,s.starts_at,
+   COALESCE(jsonb_agg(jsonb_build_object('row_no',p.row_no,'seat_no',p.seat_no,'pool',p.pool)
+    ORDER BY p.row_no,p.seat_no) FILTER (WHERE p.seat_no IS NOT NULL),'[]'::jsonb) AS seats
+   FROM additional_screenings s LEFT JOIN additional_screening_seats p ON p.screening_id=s.id
+   GROUP BY s.id ORDER BY s.id`:[];
+  const invitationsReady=await additionalScreeningsReady(db);
+  const screeningSettings=invitationsReady?await db`SELECT id,invitations_open,
+   to_char(starts_at AT TIME ZONE 'Europe/Warsaw','YYYY-MM-DD"T"HH24:MI') AS local_start,
+   (SELECT count(*)::int FROM additional_screening_bookings b WHERE b.screening_id=s.id AND b.status='confirmed') AS confirmed,
+   (SELECT count(*)::int FROM additional_screening_bookings b WHERE b.screening_id=s.id AND b.status='offered' AND b.expires_at>now()) AS offered
+   FROM additional_screenings s`:[];
+  return json(res,200,{config:cfg,reservations,seats,screenings,screeningSettings});
  }catch(e){
   if(['NO_CAPACITY','ACTION_UNAVAILABLE'].some(code=>String(e.message).includes(code)))return json(res,409,{error:'ACTION_UNAVAILABLE'});
   return json(res,503,{error:'UNAVAILABLE'});
