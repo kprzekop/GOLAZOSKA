@@ -63,6 +63,7 @@ export default async function handler(req,res){
    CASE WHEN r.email='druk-'||r.id||'@example.invalid'
     AND ((${originalPrintIds}::jsonb || ${extraPrintIds}::jsonb) ? r.id::text)
     THEN COALESCE(${printContact},r.email) ELSE r.email END AS email,
+   COALESCE((to_jsonb(r)->>'encore_priority')::boolean,false) AS encore_priority,
    r.phone,r.seats,r.status,r.admission,r.offer_target,r.upgrade_declined_at,r.created_at,r.verified_at,
    r.reminder_sent_at,r.offer_expires_at,ARRAY(SELECT s.id FROM premiere_seats s WHERE s.reservation_id=r.id ORDER BY s.row_no,s.seat_no) AS seat_ids
    FROM premiere_reservations r ORDER BY r.created_at,r.id`;

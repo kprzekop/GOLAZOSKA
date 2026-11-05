@@ -1,6 +1,8 @@
 -- Run after migrate-additional-screening-layouts.sql.
 BEGIN;
 
+ALTER TABLE premiere_reservations ADD COLUMN IF NOT EXISTS encore_priority boolean NOT NULL DEFAULT false;
+
 ALTER TABLE additional_screenings
  ADD COLUMN IF NOT EXISTS invitations_open boolean NOT NULL DEFAULT false;
 
@@ -66,8 +68,9 @@ BEGIN
  SELECT count(*) INTO available FROM additional_screening_seats
  WHERE screening_id=p_screening AND pool='public' AND booking_id IS NULL;
  SELECT r.* INTO applicant FROM premiere_reservations r
- WHERE r.admission='waiting' AND r.verified_at IS NOT NULL
- AND r.status IN ('waiting','expired')
+ WHERE r.verified_at IS NOT NULL
+ AND ((r.admission='waiting' AND r.status IN ('waiting','expired'))
+  OR (r.encore_priority AND r.admission IN ('standing','seated') AND r.status IN ('reserved','confirmed','expired')))
  AND NOT EXISTS (
   SELECT 1 FROM additional_screening_bookings b WHERE b.source_id=r.id
   AND (b.screening_id=p_screening OR b.status IN ('offered','confirmed'))

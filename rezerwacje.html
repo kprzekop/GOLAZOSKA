@@ -25,7 +25,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 <section aria-labelledby="additional-screenings">
 <h2 id="additional-screenings">Kolejne seanse</h2>
 <p>Przygotowujemy terminy kolejnych seansów. Rezerwacja miejsc ruszy wkrótce.</p>
-<p>Osobom zapisanym na listę rezerwową w pierwszej kolejności wyślemy e-mailem propozycję rezerwacji miejsc na kolejny seans.</p>
+<p>Propozycje miejsc na kolejne seanse wyślemy e-mailem w pierwszej kolejności osobom z listy rezerwowej oraz tym, które wybiorą wejście bez fotela i zaznaczą poniżej opcję pierwszeństwa.</p>
 </section>
 <section id="rules" aria-label="Jak zarezerwować">
 <h2>Jak to działa?</h2>
@@ -48,6 +48,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
  <div id="waitCount" class="hidden">
  <label for="seats">Liczba osób</label><select id="seats" name="seats"><option>1</option><option>2</option></select>
  <p id="overflowAvailability" aria-live="polite"></p>
+ <label class="inline hidden" id="encoreChoice"><input id="encorePriority" type="checkbox" disabled><span>Chcę otrzymać w pierwszej kolejności propozycję miejsc siedzących na kolejny seans. Zachowuję wejście na premierę bez gwarancji fotela.</span></label>
  <label class="inline"><input id="standingConsent" type="checkbox"><span id="consentText"></span></label>
  </div></div>
  <h2>2. Podaj dane</h2>
@@ -78,6 +79,8 @@ function updateRules(){
 }
 function updateVariant(){
  const isStanding=Number(document.getElementById('seats').value)<=standingAvailable;
+ document.getElementById('encoreChoice').classList.toggle('hidden',!waiting.checked||!isStanding);
+ document.getElementById('encorePriority').disabled=!waiting.checked||!isStanding;
  document.getElementById('alternativeLabel').textContent=standingAvailable>0?'Wybieram wejście na stojąco':'Zapisuję się na listę rezerwową';
  document.getElementById('overflowAvailability').textContent=isStanding?'Wejście na pokaz bez gwarancji fotela. Jeśli zwolnią się miejsca siedzące, wyślemy propozycję.':'Lista rezerwowa nie uprawnia do wejścia. Przyjdź dopiero po otrzymaniu i przyjęciu propozycji. Całą grupę zapisujemy razem.';
  document.getElementById('consentText').textContent=isStanding?'Rozumiem, że mogę uczestniczyć na stojąco.':'Rozumiem, że zapis na listę rezerwową nie gwarantuje wejścia.';
@@ -149,7 +152,7 @@ form.addEventListener('submit',async e=>{
  if(!waiting.checked&&!selected.size){message.textContent='Wybierz przynajmniej jedno miejsce.';return;}
  const button=document.getElementById('submit');button.disabled=true;
  try{
-  const body={...Object.fromEntries(new FormData(form)),seatIds:[...selected],waiting:waiting.checked,acceptStanding:document.getElementById('standingConsent').checked};
+  const body={...Object.fromEntries(new FormData(form)),seatIds:[...selected],waiting:waiting.checked,encorePriority:!document.getElementById('encorePriority').disabled&&document.getElementById('encorePriority').checked,acceptStanding:document.getElementById('standingConsent').checked};
   const r=await fetch('/api/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();
   const errors={DUPLICATE:'Ten e-mail ma już aktywne zgłoszenie. Sprawdź skrzynkę.',SEATS_UNAVAILABLE:'Ktoś właśnie zarezerwował wybrane miejsca. Wybierz inne na odświeżonym planie.',CHALLENGE:'Potwierdź zabezpieczenie formularza.',INVALID_INPUT:'Sprawdź dane i zgodność obu numerów telefonu.',MAIL_UNAVAILABLE:'Nie udało się wysłać wiadomości. Zgłoszenie zostało anulowane; spróbuj ponownie.'};
   if(!r.ok){if(d.error==='SEATS_UNAVAILABLE')await load();throw Error(errors[d.error]||'Nie udało się przyjąć zgłoszenia. Spróbuj później.');}

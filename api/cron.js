@@ -16,7 +16,7 @@ export default async function handler(req,res){
   const additional=await sendAdditionalScreeningOffers(db);
   if(now>=new Date('2026-12-22T00:00:00+01:00')){
    await db`UPDATE premiere_seats SET reservation_id=NULL WHERE reservation_id IS NOT NULL`;
-   await db`DELETE FROM premiere_reservations WHERE admission <> 'waiting' OR status = 'cancelled' OR verified_at IS NULL`;await db`DELETE FROM premiere_organizational_tickets`;return json(res,200,{purged:true,additional});
+   await db`DELETE FROM premiere_reservations WHERE (admission <> 'waiting' AND NOT COALESCE((to_jsonb(premiere_reservations)->>'encore_priority')::boolean,false)) OR status = 'cancelled' OR verified_at IS NULL`;await db`DELETE FROM premiere_organizational_tickets`;return json(res,200,{purged:true,additional});
   }
   if(now>=new Date(EVENT_AT))return json(res,200,{done:true,additional});
   const queue=await advanceQueue(db);promoted=queue.promoted;sent=queue.sent;failed=queue.failed;

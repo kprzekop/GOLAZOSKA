@@ -23,11 +23,18 @@ export default async function handler(req,res){
   const {name,email,phone,seatIds,seats,waiting}=input,db=sql();
   await applySeatPolicy(db);
   await advanceQueue(db);
+  const encorePriority=waiting&&body.encorePriority===true;
+  if(encorePriority){
+   const [schema]=await db`SELECT EXISTS(SELECT 1 FROM pg_attribute
+    WHERE attrelid='premiere_reservations'::regclass AND attname='encore_priority' AND NOT attisdropped) AS ready`;
+   if(!schema.ready)await db`ALTER TABLE premiere_reservations ADD COLUMN IF NOT EXISTS encore_priority boolean NOT NULL DEFAULT false`;
+  }
   const [row]=await db`SELECT * FROM premiere_create(${name},${email},${phone},${seatIds}::text[],${seats},${waiting})`;
   const [details]=await db`SELECT admission FROM premiere_reservations WHERE id=${row.booking_id}::uuid`;
   try{
+   if(encorePriority)await db`UPDATE premiere_reservations SET encore_priority=true WHERE id=${row.booking_id}::uuid`;
    await sendMail(email,details.admission==='waiting'?'Potwierdź adres – lista rezerwowa Goła Zośka':details.admission==='standing'?'Potwierdź wejście bez gwarancji fotela – Goła Zośka':'Potwierdź adres – Goła Zośka 1812',
-    actionMail(name,seats,row.booking_token,details.admission==='waiting',seatIds,details.admission));
+    actionMail(name,seats,row.booking_token,details.admission==='waiting',seatIds,details.admission)+(encorePriority?'<p>Zapisaliśmy Twoją prośbę o pierwszeństwo przy rezerwacji miejsc na kolejny seans.</p>':''));
   }catch{
    await db`SELECT * FROM premiere_action(${row.booking_token}::uuid,'cancel')`;
    return json(res,503,{error:'MAIL_UNAVAILABLE'});
