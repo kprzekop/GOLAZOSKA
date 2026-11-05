@@ -39,6 +39,21 @@ async function load(action){
 }
 accept.onclick=()=>load('accept');
 decline.onclick=()=>{if(confirm('Zrezygnować z tych miejsc?'))load('decline');};
-load();
+const signup=new URLSearchParams(location.search).get('zapis');
+if(signup){
+ status.textContent='Potwierdź, że chcesz otrzymać propozycję miejsc na kolejny seans.';
+ accept.textContent='Potwierdzam zapis';accept.hidden=false;
+ accept.onclick=async()=>{
+  accept.disabled=true;
+  try{
+   const response=await fetch('/api/additional-screening',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:signup,action:'verify-interest'})});
+   if(!response.ok)throw Error(response.status===404?'Ten link wygasł. Zapisz się ponownie na stronie rezerwacji.':'Nie udało się potwierdzić zapisu. Spróbuj ponownie.');
+   status.textContent='Zapis potwierdzony. Gdy ustalimy terminy, wyślemy propozycję w miarę dostępności miejsc.';
+   accept.hidden=true;
+  }catch(error){status.textContent=error.message;}
+  finally{accept.disabled=false;}
+ };
+}else load();
 </script>
 </html>

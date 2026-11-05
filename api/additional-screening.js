@@ -26,9 +26,16 @@ export default async function handler(req,res){
   }catch{return json(res,503,{error:'UNAVAILABLE'});}
  }
  if(typeof id!=='string'||!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)
-  ||(req.method==='POST'&&!['accept','decline'].includes(action)))return json(res,400,{error:'INVALID_INPUT'});
+  ||(req.method==='POST'&&!['accept','decline','verify-interest'].includes(action)))return json(res,400,{error:'INVALID_INPUT'});
  try{
   const db=sql();
+  if(action==='verify-interest'&&req.method==='POST'){
+   const [schema]=await db`SELECT to_regclass('public.additional_screening_interest') IS NOT NULL AS ready`;
+   if(!schema.ready)return json(res,404,{error:'NOT_FOUND'});
+   const [entry]=await db`UPDATE additional_screening_interest SET verified_at=COALESCE(verified_at,now())
+    WHERE id=${id}::uuid AND (verified_at IS NOT NULL OR created_at>now()-interval '24 hours') RETURNING id`;
+   return entry?json(res,200,{ok:true}):json(res,404,{error:'NOT_FOUND'});
+  }
   if(!await additionalScreeningsReady(db))return json(res,404,{error:'NOT_FOUND'});
   if(req.method==='POST')await db`SELECT additional_screening_reply(${id}::uuid,${action})`;
   const [offer]=await db`SELECT CASE WHEN b.status='offered' AND b.expires_at<=now()
