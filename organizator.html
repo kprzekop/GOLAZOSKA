@@ -9,11 +9,91 @@
 <p class="muted">Hasłem jest dotychczasowy klucz organizatora. Po poprawnym logowaniu możesz zapisać je w menedżerze haseł przeglądarki.</p>
 </form>
 <section id="guests" hidden><h2>Miejsca gościnne</h2><p>Przypisz gościa do fotela lub pobierz jego kod QR. Przekazanie miejsca do rezerwacji online unieważnia dotychczasową wejściówkę.</p><label>Rząd <select id="guestRow"><option value="">Wszystkie</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label><p id="guestStatus" role="status"></p><table><thead><tr><th>Fotel</th><th>Imię i nazwisko</th><th>Działania</th></tr></thead><tbody id="guestSeats"></tbody></table></section><section id="pools" hidden><h2>Ostatnie miejsca</h2><p>Możesz udostępnić lub wstrzymać niezajęte miejsca z puli rezerwacji online. Miejsca gościnne mają osobne drukowane wejściówki. Zwolnione miejsca obsługuje automatyczna kolejka.</p><div id="poolButtons"></div></section><label>Pokaż pulę: <select id="admissionFilter"><option value="all">Wszystkie zgłoszenia</option><option value="seated">Fotele</option><option value="standing">Bez gwarancji fotela</option><option value="waiting">Lista rezerwowa</option><option value="encore">Pierwszeństwo na drugi seans</option></select></label><p id="status" role="status"></p><p id="summary"></p>
+<section id="screenings" hidden>
+<h2>Kolejne seanse</h2>
+<p class="muted">Podgląd roboczych planów sali.</p>
+<div id="screeningPlans"></div>
+</section>
 <button id="export" hidden>Eksport CSV</button><button id="refresh" hidden>Odśwież</button>
 <section><table id="table" hidden><thead><tr><th>Data</th><th>Nazwisko</th><th>E-mail</th><th>Telefon</th><th>Osoby</th><th>Miejsca</th><th>Pula</th><th>Status</th><th>Działania</th></tr></thead><tbody></tbody></table></section>
 </main><script>
 let key='',rows=[],guestSeats=[];
 const encoreEligible=r=>r.admission==='waiting'&&!!r.verified_at&&['waiting','expired'].includes(r.status);
+const screeningDate=new Intl.DateTimeFormat('pl-PL',{dateStyle:'long',timeStyle:'short',timeZone:'Europe/Warsaw'});
+const screeningPools={organizational:'Organizator',public:'Pula internetowa',held:'Wstrzymane'};
+function showScreeningPlans(screenings,settings){
+  const section=document.getElementById('screenings');
+  const plans=document.getElementById('screeningPlans');
+  plans.replaceChildren();
+  section.hidden=!screenings.length;
+  for(const screening of screenings){
+    const details=document.createElement('details');
+    details.dataset.screening=screening.id;
+    const title=document.createElement('summary');
+    const date=screening.starts_at?screeningDate.format(new Date(screening.starts_at)):'termin do ustalenia';
+    title.textContent='Dodatkowy seans '+screening.id+' · '+date;
+    details.append(title);
+    const config=settings.find(item=>item.id===screening.id);
+    if(config){
+      const form=document.createElement('form');
+      const label=document.createElement('label');
+      const input=document.createElement('input');
+      input.type='datetime-local';input.required=true;input.value=config.local_start||'';
+      label.append('Termin (czas polski) ',input);
+      const open=document.createElement('input');
+      open.type='checkbox';open.checked=config.invitations_open;
+      const openLabel=document.createElement('label');
+      openLabel.append(open,' Wysyłaj propozycje osobom z listy rezerwowej');
+      const save=document.createElement('button');
+      save.textContent='Zapisz ustawienia';
+      const feedback=document.createElement('p');
+      feedback.setAttribute('role','status');
+      feedback.textContent='Oferty oczekujące: '+config.offered+' · Potwierdzone rezerwacje: '+config.confirmed;
+      form.append(label,openLabel,save,feedback);
+      form.onsubmit=async event=>{
+        event.preventDefault();
+        if(open.checked&&!config.invitations_open&&!confirm('Uruchomić wysyłkę przy najbliższym zadaniu dziennym?'))return;
+        save.disabled=true;
+        try{
+          const response=await fetch('/api/additional-screening',{method:'POST',
+            headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
+            body:JSON.stringify({action:'schedule',id:screening.id,startsAt:input.value,invitationsOpen:open.checked})});
+          if(!response.ok)throw Error(response.status===409?'Termin musi być w przyszłości. Po utworzeniu ofert jego zmiana jest zablokowana.':'Nie udało się zapisać ustawień.');
+          await load();
+          const savedPlan=document.getElementById('screeningPlans').querySelector('[data-screening="'+screening.id+'"]');
+          if(savedPlan)savedPlan.open=true;
+          status.textContent='Zapisano ustawienia seansu.';
+        }catch(error){feedback.textContent=error.message;}
+        finally{save.disabled=false;}
+      };
+      details.append(form);
+    }
+    const totals=document.createElement('p');
+    totals.textContent=Object.entries(screeningPools).map(([pool,label])=>
+      label+' — '+screening.seats.filter(seat=>seat.pool===pool).length
+    ).join(' · ');
+    details.append(totals);
+    const screen=document.createElement('p');
+    screen.textContent='Ekran';
+    details.append(screen);
+    const list=document.createElement('ul');
+    const rows=new Map();
+    for(const seat of screening.seats){
+      if(!rows.has(seat.row_no))rows.set(seat.row_no,[]);
+      rows.get(seat.row_no).push(seat);
+    }
+    for(const [row,seats] of rows){
+      const item=document.createElement('li');
+      item.textContent='Rząd '+row+' — '+Object.entries(screeningPools).map(([pool,label])=>{
+        const numbers=seats.filter(seat=>seat.pool===pool).map(seat=>seat.seat_no);
+        return numbers.length?label+' ('+numbers.join(', ')+')':'';
+      }).filter(Boolean).join(' · ');
+      list.append(item);
+    }
+    details.append(list);
+    plans.append(details);
+  }
+}
 const kindLabel=k=>({seated:'Fotele',standing:'Bez gwarancji fotela',waiting:'Lista rezerwowa'}[k]||k);
 document.getElementById('admissionFilter').onchange=load;const status=document.getElementById('status');
 document.getElementById('auth').onsubmit=e=>{e.preventDefault();key=document.getElementById('key').value;load(true)};
@@ -30,6 +110,7 @@ async function load(savePassword=false){
       }catch{}
     }
     rows=d.reservations;
+    showScreeningPlans(d.screenings||[],d.screeningSettings||[]);
     guestSeats=d.seats.filter(s=>s.pool==='organizational');
     document.getElementById('guests').hidden=false;
     renderGuests();
