@@ -55,7 +55,14 @@ export default async function handler(req,res){
    const [r]=await db`SELECT premiere_admin_action(${id}::uuid,${action}) AS status`;if(action!=='cancel_hold')await advanceQueue(db);if(action==='confirm')await deliverTickets(db,id);return json(res,200,r);
   }
   await advanceQueue(db);
-  const reservations=await db`SELECT r.id,r.name,r.email,r.phone,r.seats,r.status,r.admission,r.offer_target,r.upgrade_declined_at,r.created_at,r.verified_at,
+  const printContact=process.env.STANDING_GUEST_PRINT_CONTACT||null;
+  const originalPrintIds=process.env.STANDING_GUEST_PRINT_IDS||'[]';
+  const extraPrintIds=process.env.STANDING_GUEST_PRINT_EXTRA_IDS||'[]';
+  const reservations=await db`SELECT r.id,r.name,
+   CASE WHEN r.email='druk-'||r.id||'@example.invalid'
+    AND ((${originalPrintIds}::jsonb || ${extraPrintIds}::jsonb) ? r.id::text)
+    THEN COALESCE(${printContact},r.email) ELSE r.email END AS email,
+   r.phone,r.seats,r.status,r.admission,r.offer_target,r.upgrade_declined_at,r.created_at,r.verified_at,
    r.reminder_sent_at,r.offer_expires_at,ARRAY(SELECT s.id FROM premiere_seats s WHERE s.reservation_id=r.id ORDER BY s.row_no,s.seat_no) AS seat_ids
    FROM premiere_reservations r ORDER BY r.created_at,r.id`;
   const [cfg]=await db`SELECT public_capacity,guest_capacity,physical_capacity,standing_capacity,premiere_standing_used() AS standing_used FROM premiere_config WHERE id=1`;
