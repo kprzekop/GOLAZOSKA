@@ -24,7 +24,9 @@ export default async function handler(req,res){
   if(now<new Date(CONFIRM_BY)){
    const canConfirm=now>=new Date(REMIND_FROM);
    const reminders=await db`SELECT id,name,email,token,admission FROM premiere_reservations WHERE status='reserved'
-    AND COALESCE(reminder_sent_at,verified_at,created_at)<=now()-interval '5 days' ORDER BY created_at`;
+    AND (COALESCE(reminder_sent_at,verified_at,created_at)<=now()-interval '5 days'
+     OR (${canConfirm} AND (reminder_sent_at IS NULL OR reminder_sent_at<${REMIND_FROM}::timestamptz)))
+    ORDER BY created_at`;
    for(const r of reminders){
     try{
      await sendMail(r.email,canConfirm?'Potwierdź udział do 18 listopada, godz. 19:00 – Goła Zośka':'Przypomnienie o rezerwacji – Goła Zośka',
