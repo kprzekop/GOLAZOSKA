@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Goła Zośka 1812 – dodatkowy seans</title>
+<style>
+body{background:#101716;color:#e8e4d9;font:18px/1.5 Arial,sans-serif;margin:24px}
+main{max-width:640px;margin:6vh auto;padding:24px;border:1px solid #c8a77b}
+button{font:inherit;padding:10px;margin:4px;background:#c8a77b;color:#101716;border:0}
+</style>
+<main>
+<h1>Dodatkowy seans</h1>
+<p id="when"></p>
+<p id="seats"></p>
+<p id="status" role="status">Sprawdzam propozycję…</p>
+<button id="accept" hidden>Przyjmuję miejsca</button>
+<button id="decline" hidden>Rezygnuję</button>
+</main>
+<script>
+const id=new URLSearchParams(location.search).get('oferta');
+const status=document.getElementById('status'),accept=document.getElementById('accept'),decline=document.getElementById('decline');
+const format=new Intl.DateTimeFormat('pl-PL',{dateStyle:'long',timeStyle:'short',timeZone:'Europe/Warsaw'});
+async function load(action){
+ accept.disabled=decline.disabled=true;
+ try{
+  const response=action?await fetch('/api/additional-screening',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,action})})
+   :await fetch('/api/additional-screening?id='+encodeURIComponent(id));
+  if(!response.ok)throw Error(response.status===404||response.status===400?'Nie znaleziono propozycji.':'Nie udało się pobrać propozycji. Spróbuj ponownie.');
+  const offer=await response.json();
+  document.getElementById('when').textContent=format.format(new Date(offer.starts_at))+' · sala widowiskowa MDK, Rynek Zygmunta Augusta 9. Wejście od ul. Kościelnej, II piętro.';
+  document.getElementById('seats').textContent=offer.seats.map(id=>{const [row,seat]=id.split('-');return 'Rząd '+row+', miejsce '+seat;}).join(' · ');
+  status.textContent=({offered:'Przyjmij propozycję do '+format.format(new Date(offer.expires_at))+'.',confirmed:'Twoja rezerwacja jest potwierdzona. Zachowaj ten link.',declined:'Propozycja odrzucona.',cancelled:'Rezerwacja anulowana.',expired:'Propozycja wygasła.'})[offer.status];
+  accept.hidden=offer.status!=='offered';
+  decline.hidden=!['offered','confirmed'].includes(offer.status)||Date.now()>=Date.parse(offer.starts_at);
+ }catch(error){status.textContent=error.message;}
+ finally{accept.disabled=decline.disabled=false;}
+}
+accept.onclick=()=>load('accept');
+decline.onclick=()=>{if(confirm('Zrezygnować z tych miejsc?'))load('decline');};
+load();
+</script>
+</html>
