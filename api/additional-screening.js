@@ -1,0 +1,41 @@
+import {isAdmin,json,sql} from '../lib/shared.js';
+import {additionalScreeningsReady} from '../lib/additional-screenings.js';
+
+export default async function handler(req,res){
+ if(!['GET','POST'].includes(req.method))return json(res,405,{error:'METHOD'});
+ const {id,action}=req.method==='GET'?(req.query||{}):(req.body||{});
+ if(req.method==='POST'&&action==='schedule'){
+  if(!isAdmin(req))return json(res,401,{error:'UNAUTHORIZED'});
+  const {startsAt,invitationsOpen}=req.body;
+  if(![1,2,3].includes(id)||typeof invitationsOpen!=='boolean'
+   ||typeof startsAt!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(startsAt))
+   return json(res,400,{error:'INVALID_INPUT'});
+  try{
+   const db=sql();
+   if(!await additionalScreeningsReady(db))return json(res,503,{error:'UNAVAILABLE'});
+   const [,updated]=await db.transaction([
+    db`SELECT pg_advisory_xact_lock(851191,1)`,
+    db`UPDATE additional_screenings SET starts_at=${startsAt}::timestamp AT TIME ZONE 'Europe/Warsaw',
+     invitations_open=${invitationsOpen} WHERE id=${id}
+     AND ${startsAt}::timestamp AT TIME ZONE 'Europe/Warsaw'>now()
+     AND (starts_at=${startsAt}::timestamp AT TIME ZONE 'Europe/Warsaw' OR NOT EXISTS (
+      SELECT 1 FROM additional_screening_bookings WHERE screening_id=${id}
+     )) RETURNING id`
+   ]);
+   return updated.length?json(res,200,{ok:true}):json(res,409,{error:'ACTION_UNAVAILABLE'});
+  }catch{return json(res,503,{error:'UNAVAILABLE'});}
+ }
+ if(typeof id!=='string'||!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)
+  ||(req.method==='POST'&&!['accept','decline'].includes(action)))return json(res,400,{error:'INVALID_INPUT'});
+ try{
+  const db=sql();
+  if(!await additionalScreeningsReady(db))return json(res,404,{error:'NOT_FOUND'});
+  if(req.method==='POST')await db`SELECT additional_screening_reply(${id}::uuid,${action})`;
+  const [offer]=await db`SELECT CASE WHEN b.status='offered' AND b.expires_at<=now()
+   THEN 'expired' ELSE b.status END AS status,s.starts_at,b.expires_at,
+   ARRAY(SELECT p.row_no||'-'||p.seat_no FROM additional_screening_seats p
+    WHERE p.booking_id=b.id ORDER BY p.row_no,p.seat_no) AS seats
+   FROM additional_screening_bookings b JOIN additional_screenings s ON s.id=b.screening_id WHERE b.id=${id}::uuid`;
+  return offer?json(res,200,offer):json(res,404,{error:'NOT_FOUND'});
+ }catch{return json(res,503,{error:'UNAVAILABLE'});}
+}
