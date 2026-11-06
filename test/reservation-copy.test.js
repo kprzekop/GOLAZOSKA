@@ -12,7 +12,7 @@ async function page({open=true,available=20,free=true,now='2026-11-06T12:00:00+0
 }
 test('przed otwarciem zasady są widoczne, formularz i warianty ukryte',async()=>{
  const dom=await page({open:false,now:'2026-10-28T12:00:00+01:00'});try{
- const d=dom.window.document;assert.ok(d.getElementById('rules').textContent.includes('14 listopada'));
+ const d=dom.window.document;assert.ok(d.getElementById('rules').textContent.includes('od razu ważna'));
  assert.ok(d.getElementById('form').classList.contains('hidden'));
  assert.match(d.getElementById('availability').textContent,/5 listopada o godzinie 16:00/);
  }finally{dom.window.close();}
