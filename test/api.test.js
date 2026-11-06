@@ -105,7 +105,7 @@ test('zadanie dzienne: prośba o potwierdzenie, termin zwolnienia, przypomnienie
   await time('2026-11-19T19:00:00+01:00');
   assert.equal((await call(cron,'GET',{},{} ,'Bearer cron-test')).body.sent,3);
   assert.ok(qrMails.length>0);assert.equal(qrMails.at(-1)[3].length,1);
-  assert.match(mails[1][2],/Kościelnej/);assert.match(mails[1][2],/rząd 6, miejsce 1/);
+  assert.match(mails[1][2],/Kościelnej/);assert.match(mails[1][2],/rząd 6, miejsce 2/);
   await time('2026-12-22T19:00:00+01:00');
   assert.equal((await call(cron,'GET',{},{} ,'Bearer cron-test')).body.purged,true);
   assert.equal((await db.query('SELECT count(*)::int n FROM premiere_reservations')).rows[0].n,0);
@@ -178,7 +178,7 @@ test('publiczny formularz przydziela pulę 20 po zgodzie, a kolejne zgłoszenia 
    assert.equal(r.code,200);assert.equal(r.body.admission,'standing');assert.equal(r.body.status,'confirmed');
   }
   assert.equal((await db.query('SELECT premiere_standing_used() AS n')).rows[0].n,20);
-  assert.match(mails[0][2],/udział może odbyć się na stojąco/);
+  assert.match(qrMails.at(-1)[2],/Wejście na stojąco/);
   const last=await call(reserve,'POST',{...body,email:'last@example.com',seats:1,acceptStanding:true});
   assert.equal(last.code,200);assert.equal(last.body.admission,'waiting');assert.equal(last.body.status,'waiting');
   assert.match(mails.at(-1)[2],/nie uprawnia do wejścia/);
