@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow"><title>Rezerwacja – Goła Zośka 1812</title>
+<meta name="robots" content="noindex,nofollow"><title>Pokaz przedpremierowy o 18:00 – Goła Zośka 1812</title>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#101716;color:#e8e4d9;font:20px/1.55 Oswald,sans-serif}
@@ -17,17 +17,19 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 .seat[aria-pressed="true"]{background:#e8bd75;color:#101716;outline:2px solid white}.seat:disabled{background:#3c403d;border-color:#777;color:#b0b0a4;opacity:1}
 .seat.held{background:#4e4334}.seat.organizational{background:#363648}.legend{font:15px/1.7 Arial,sans-serif}.inline{display:flex;gap:10px;align-items:start;font-size:17px}.inline input{width:auto;margin-top:8px}
 #selected{font-size:17px}button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.primary-cta{display:inline-flex;justify-content:center;padding:16px 24px;background:#e8bd75;color:#101716;font-weight:600;text-decoration:none;border-radius:4px}.primary-cta:hover{background:#f4d6a5}.sold-out{padding:18px;border-left:3px solid #c8a77b;background:#101716;font-size:19px}html{scroll-behavior:smooth}#form{scroll-margin-top:24px}.primary-cta:focus-visible{outline:3px solid white;outline-offset:4px}@media(max-width:600px){.primary-cta,#submit{width:100%}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style><link rel="icon" type="image/webp" sizes="640x640" href="/favicon.webp?v=20261027">
 </head><body><main>
-<a href="/">← Strona filmu</a><p class="eyebrow">Premiera · 21 listopada 2026 · godz. 19:00</p>
-<h1>Zarezerwuj wejście na premierę</h1>
+<a href="/">← Strona filmu</a><p class="eyebrow">Pokaz przedpremierowy · 21 listopada 2026</p>
+<h1>Zobacz „Gołą Zośkę 1812”<br>o godz. 18:00</h1>
+<p class="sold-out"><strong>Wejściówki na premierę o 19:00 zostały wyczerpane.</strong> Są jeszcze miejsca na pokaz przedpremierowy o 18:00.</p>
 <p><strong>Wstęp bezpłatny.</strong> Sala widowiskowa MDK, Rynek Zygmunta Augusta 9.<br>Wejście od ul. Kościelnej, II piętro.</p>
 <section aria-labelledby="additional-screenings">
-<h2 id="additional-screenings">Kolejne seanse</h2>
+<h2 id="additional-screenings">Ten sam film. Wcześniejszy seans.</h2>
 <p>21 listopada 2026 o godz. 18:00 odbędzie się pokaz przedpremierowy. Po seansie zapraszamy na krótkie spotkanie z twórcami.</p>
-<p>Propozycje miejsc wyślemy e-mailem w pierwszej kolejności osobom z wejściem bez gwarancji fotela i zapisanym na listę.</p>
+<p>Podaj liczbę osób i dane kontaktowe. Po przydzieleniu wolnych foteli otrzymasz ważną wejściówkę e-mailem.</p>
 </section>
-<p><a href="/rezerwacje.html?kolejne=1" id="interestLink">Zapisz się na pokaz o 18:00</a></p>
+<p><a class="primary-cta" href="#form" id="interestLink">Zarezerwuj na 18:00 ↓</a></p>
 <section id="rules" aria-label="Jak zarezerwować">
 <h2>Jak to działa?</h2>
 <ol><li>Wybierz od 1 do 2 miejsc i podaj dane.</li><li>Po przydzieleniu wejściówka jest od razu ważna.</li><li id="confirmationRule"></li></ol>
@@ -53,7 +55,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
  <label class="inline"><input id="standingConsent" type="checkbox"><span id="consentText"></span></label>
  </div></div>
  </div>
- <div id="interestOptions" class="hidden"><div class="screen">EKRAN · POKAZ O 18:00</div><div id="previewMap" class="seatmap" aria-label="Plan sali na 18:00"></div><label for="interestSeats">Liczba osób</label><select id="interestSeats"><option>1</option><option>2</option></select></div>
+ <div id="interestOptions" class="hidden"><h2>1. Wybierz liczbę osób</h2><p class="muted">Podgląd sali. Wolne fotele przydzieli system — nie wybierasz ich na planie.</p><div class="screen">EKRAN · POKAZ O 18:00</div><div id="previewMap" class="seatmap" aria-label="Plan sali na 18:00"></div><label for="interestSeats">Liczba osób</label><select id="interestSeats"><option>1</option><option>2</option></select></div>
  <h2 id="contactHeading">2. Podaj dane</h2>
  <label for="name">Imię i nazwisko</label><input id="name" name="name" maxlength="120" minlength="2" required autocomplete="name">
  <label for="email">Adres e-mail</label><input id="email" name="email" type="email" maxlength="254" required autocomplete="email">
@@ -70,7 +72,8 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 const form=document.getElementById('form'),message=document.getElementById('message'),availability=document.getElementById('availability');
 const selected=new Set(),waiting=document.getElementById('waiting'),map=document.getElementById('seatmap');
 let seatData=[],widget,standingAvailable=0;
-const interestMode=new URLSearchParams(location.search).get('kolejne')==='1';
+// All public entry links now lead to the 18:00 preview screening.
+const interestMode=true;
 function updateRules(){
  document.getElementById('confirmationRule').textContent='Sprawdź e-mail z wejściówką.';
  document.getElementById('verificationRule').textContent='Przydzieloną wejściówkę otrzymasz e-mailem.';
@@ -114,16 +117,12 @@ function render(){
 }
 async function load(){
  if(interestMode){
-  document.querySelector('h1').textContent='Zapisz się na pokaz o 18:00';
-  document.querySelector('.eyebrow').textContent='Goła Zośka 1812';
   document.getElementById('rules').hidden=true;
-  document.getElementById('interestLink').textContent='Wróć do rezerwacji na premierę';
-  document.getElementById('interestLink').href='/rezerwacje.html';
   document.getElementById('premiereOptions').classList.add('hidden');
   document.getElementById('interestOptions').classList.remove('hidden');
-  document.getElementById('contactHeading').textContent='Podaj dane kontaktowe';
+  document.getElementById('contactHeading').textContent='2. Podaj dane kontaktowe';
   document.getElementById('verificationRule').textContent='Po przydzieleniu miejsc otrzymasz wejściówkę e-mailem.';
-  document.getElementById('submit').textContent='Zapisz się na pokaz o 18:00';
+  document.getElementById('submit').textContent='Zarezerwuj na 18:00';
   const response=await fetch('/api/reserve?interest=true'),data=await response.json();
   if(!response.ok||!data.siteKey)throw Error('Nie można teraz przyjmować zgłoszeń. Spróbuj później.');
   showChallenge(data.siteKey);
@@ -144,7 +143,7 @@ async function load(){
     map.append(line);
    }
   }catch{document.getElementById('previewMap').textContent='Plan chwilowo niedostępny.';}
-  availability.textContent='Zapis dotyczy pokazu przedpremierowego 21 listopada o godz. 18:00. System automatycznie przydzieli wolne fotele i wyśle ważną wejściówkę e-mailem.';
+  availability.textContent='Zapis dotyczy pokazu przedpremierowego 21 listopada o godz. 18:00. Po przydzieleniu wolnych foteli wyślemy ważną wejściówkę e-mailem. Samo zgłoszenie nie jest jeszcze wejściówką.';
   form.classList.remove('hidden');
   return;
  }
