@@ -8,12 +8,14 @@
 <style>
 body{background:#101716;color:#e8e4d9;font:18px/1.5 Arial,sans-serif;margin:24px}
 main{max-width:640px;margin:6vh auto;padding:24px;border:1px solid #c8a77b}
-button{font:inherit;padding:10px;margin:4px;background:#c8a77b;color:#101716;border:0}
+[hidden]{display:none!important}label{display:block;padding:16px;border:1px solid #c8a77b;margin:20px 0}input{width:22px;height:22px;vertical-align:middle}button:disabled{opacity:.5;cursor:not-allowed}button{font:inherit;padding:10px;margin:4px;background:#c8a77b;color:#101716;border:0}
 </style>
 <main>
 <h1>Dodatkowy seans</h1>
 <p id="when"></p>
 <p id="seats"></p>
+<p id="transferInfo" hidden></p>
+<label id="consentLabel" hidden><input id="consent" type="checkbox"> Zgadzam się na zamianę całej rezerwacji na 18:00 i anulowanie zgłoszenia na 19:00.</label>
 <p id="status" role="status">Sprawdzam propozycję…</p>
 <button id="accept" hidden>Przyjmuję miejsca</button>
 <button id="decline" hidden>Rezygnuję</button>
@@ -21,24 +23,41 @@ button{font:inherit;padding:10px;margin:4px;background:#c8a77b;color:#101716;bor
 <script>
 const id=new URLSearchParams(location.search).get('oferta');
 const status=document.getElementById('status'),accept=document.getElementById('accept'),decline=document.getElementById('decline');
+let transferPending=false,transferred=false;
+const consent=document.getElementById('consent'),consentLabel=document.getElementById('consentLabel'),transferInfo=document.getElementById('transferInfo');
 const format=new Intl.DateTimeFormat('pl-PL',{dateStyle:'long',timeStyle:'short',timeZone:'Europe/Warsaw'});
 async function load(action){
  accept.disabled=decline.disabled=true;
  try{
   const response=action?await fetch('/api/additional-screening',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,action})})
    :await fetch('/api/additional-screening?id='+encodeURIComponent(id));
-  if(!response.ok)throw Error(response.status===404||response.status===400?'Nie znaleziono propozycji.':'Nie udało się pobrać propozycji. Spróbuj ponownie.');
+  if(!response.ok)throw Error(response.status===409?'Zamiana nie jest już dostępna. Nie zmieniliśmy zgłoszenia na 19:00. Odśwież stronę, aby sprawdzić aktualny stan.':response.status===404||response.status===400?'Nie znaleziono propozycji.':'Nie udało się pobrać propozycji. Spróbuj ponownie.');
   const offer=await response.json();
   document.getElementById('when').textContent=format.format(new Date(offer.starts_at))+' · po seansie krótkie spotkanie z twórcami · sala widowiskowa MDK, Rynek Zygmunta Augusta 9. Wejście od ul. Kościelnej, II piętro.';
   document.getElementById('seats').textContent=offer.seats.map(id=>{const [row,seat]=id.split('-');return 'Rząd '+row+', miejsce '+seat;}).join(' · ');
   status.textContent=({offered:'Przyjmij propozycję do '+format.format(new Date(offer.expires_at))+'.',confirmed:'Twoja rezerwacja jest potwierdzona. Zachowaj ten link.',declined:'Propozycja odrzucona.',cancelled:'Rezerwacja anulowana.',expired:'Propozycja wygasła.'})[offer.status];
   accept.hidden=offer.status!=='offered';
   decline.hidden=!['offered','confirmed'].includes(offer.status)||Date.now()>=Date.parse(offer.starts_at);
+  transferred=!!offer.transferred_at;
+  transferPending=offer.transfer&&!transferred&&['offered','confirmed'].includes(offer.status)&&Date.now()<Date.parse(offer.starts_at);
+  consentLabel.hidden=!transferPending;consent.checked=false;
+  transferInfo.hidden=!offer.transfer;
+  if(offer.transfer){
+   document.querySelector('h1').textContent=transferred?'Twoja wejściówka na 18:00':'Zamień 19:00 na 18:00';
+   transferInfo.textContent=transferred?'Zamiana została wykonana. Zgłoszenie na 19:00 zostało anulowane, a stare wejściówki są nieważne. Anulowanie miejsc na 18:00 nie przywróci zgłoszenia na 19:00.':'Po Twojej zgodzie potwierdzimy miejsca siedzące na 18:00 i jednocześnie zwolnimy całe zgłoszenie na 19:00 (wejście na stojąco lub wpis na liście rezerwowej). Odmowa i brak odpowiedzi nie zmieniają zgłoszenia na 19:00.';
+   if(transferPending){
+    accept.hidden=false;accept.textContent='Zamieniam na 18:00';
+    decline.textContent='Nie zamieniam — zostaję przy 19:00';
+    status.textContent=offer.status==='offered'?'Te fotele czekają na Twoją decyzję do '+format.format(new Date(offer.expires_at))+'.':'Masz już ważne miejsca na 18:00. Potwierdź, czy zwolnić Twoje zgłoszenie na 19:00.';
+   }else if(transferred&&offer.status==='confirmed')status.textContent='Zamiana potwierdzona. To Twoja ważna wejściówka na 18:00 — pokaż ją przy wejściu. Potwierdzenie wyślemy również e-mailem.';
+  }
+  if(!transferPending){accept.textContent='Przyjmuję miejsca';decline.textContent='Anuluj miejsca na 18:00';}
  }catch(error){status.textContent=error.message;}
- finally{accept.disabled=decline.disabled=false;}
+ finally{accept.disabled=transferPending&&!consent.checked;decline.disabled=false;}
 }
-accept.onclick=()=>load('accept');
-decline.onclick=()=>{if(confirm('Zrezygnować z tych miejsc?'))load('decline');};
+consent.onchange=()=>{accept.disabled=transferPending&&!consent.checked;};
+accept.onclick=()=>{if(transferPending&&!consent.checked)return;return load(transferPending?'transfer':'accept');};
+decline.onclick=()=>{if(confirm(transferPending?'Odrzucić miejsca na 18:00 i pozostawić zgłoszenie na 19:00 bez zmian?':transferred?'Anulować miejsca na 18:00? Zgłoszenie na 19:00 nie zostanie przywrócone.':'Zrezygnować z tych miejsc?'))load('decline');};
 const signup=new URLSearchParams(location.search).get('zapis');
 if(signup){
  status.textContent='Potwierdź, że chcesz otrzymać propozycję miejsc na kolejny seans.';

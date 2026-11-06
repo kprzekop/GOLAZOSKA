@@ -1,5 +1,5 @@
-import {isAdmin,json,sql} from '../lib/shared.js';
-import {additionalScreeningsReady,initializePreviewScreening} from '../lib/additional-screenings.js';
+import {isAdmin,json,sql,tokenValid} from '../lib/shared.js';
+import {additionalScreeningsReady,initializePreviewScreening,sendAdditionalScreeningOffers,deliverTransferConfirmation} from '../lib/additional-screenings.js';
 
 export default async function handler(req,res){
  if(!['GET','POST'].includes(req.method))return json(res,405,{error:'METHOD'});
@@ -12,6 +12,24 @@ export default async function handler(req,res){
     FROM additional_screening_seats WHERE screening_id=1 ORDER BY row_no,seat_no`;
    return json(res,200,{seats});
   }catch{return json(res,503,{error:'UNAVAILABLE'});}
+ }
+ if(req.method==='POST'&&req.body?.action==='dispatch-transfers'){
+  const token=(req.headers.authorization||'').replace(/^Bearer /i,'');
+  if(!isAdmin(req)&&!tokenValid(token,process.env.TRANSFER_DISPATCH_TOKEN))return json(res,401,{error:'UNAUTHORIZED'});
+  try{
+   const db=sql();await initializePreviewScreening(db);
+   if(req.body.dryRun){
+    const [stats]=await db`SELECT
+     (SELECT count(*)::int FROM premiere_reservations WHERE verified_at IS NOT NULL AND admission IN ('standing','waiting') AND status IN ('reserved','confirmed','waiting','offered') AND email NOT LIKE '%@example.invalid') AS eligible_bookings,
+     (SELECT count(*)::int FROM additional_screening_bookings WHERE transfer_source_id IS NOT NULL AND transferred_at IS NULL AND status IN ('offered','confirmed')) AS pending_transfers,
+     (SELECT count(*)::int FROM additional_screening_bookings WHERE transfer_sent_at IS NOT NULL) AS sent_proposals,
+     (SELECT count(*)::int FROM additional_screening_bookings WHERE transferred_at IS NOT NULL) AS completed_transfers,
+     (SELECT count(*)::int FROM additional_screening_seats WHERE screening_id=1 AND pool='public' AND booking_id IS NULL) AS free_seats`;
+    return json(res,200,stats);
+   }
+   return json(res,200,await sendAdditionalScreeningOffers(db,{previewOnly:true}));
+  }
+  catch{return json(res,503,{error:'UNAVAILABLE'});}
  }
  const {id,action}=req.method==='GET'?(req.query||{}):(req.body||{});
  if(req.method==='POST'&&action==='schedule'){
@@ -36,7 +54,7 @@ export default async function handler(req,res){
   }catch{return json(res,503,{error:'UNAVAILABLE'});}
  }
  if(typeof id!=='string'||!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)
-  ||(req.method==='POST'&&!['accept','decline','verify-interest'].includes(action)))return json(res,400,{error:'INVALID_INPUT'});
+  ||(req.method==='POST'&&!['accept','transfer','decline','verify-interest'].includes(action)))return json(res,400,{error:'INVALID_INPUT'});
  try{
   const db=sql();
   if(action==='verify-interest'&&req.method==='POST'){
@@ -47,12 +65,17 @@ export default async function handler(req,res){
    return entry?json(res,200,{ok:true}):json(res,404,{error:'NOT_FOUND'});
   }
   if(!await additionalScreeningsReady(db))return json(res,404,{error:'NOT_FOUND'});
+  await initializePreviewScreening(db);
   if(req.method==='POST')await db`SELECT additional_screening_reply(${id}::uuid,${action})`;
-  const [offer]=await db`SELECT CASE WHEN b.status='offered' AND b.expires_at<=now()
+  if(req.method==='POST'&&action==='transfer')await deliverTransferConfirmation(db,id);
+  const [offer]=await db`SELECT b.transfer_source_id IS NOT NULL AS transfer, b.transferred_at, CASE WHEN b.status='offered' AND b.expires_at<=now()
    THEN 'expired' ELSE b.status END AS status,s.starts_at,b.expires_at,
    ARRAY(SELECT p.row_no||'-'||p.seat_no FROM additional_screening_seats p
     WHERE p.booking_id=b.id ORDER BY p.row_no,p.seat_no) AS seats
    FROM additional_screening_bookings b JOIN additional_screenings s ON s.id=b.screening_id WHERE b.id=${id}::uuid`;
   return offer?json(res,200,offer):json(res,404,{error:'NOT_FOUND'});
- }catch{return json(res,503,{error:'UNAVAILABLE'});}
+ }catch(error){
+  for(const code of ['TRANSFER_CONSENT_REQUIRED','ACTION_UNAVAILABLE','SEATS_UNAVAILABLE'])if(String(error.message).includes(code))return json(res,409,{error:code});
+  return json(res,503,{error:'UNAVAILABLE'});
+ }
 }

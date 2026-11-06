@@ -119,28 +119,25 @@ test('anulowanie i blokada foteli są atomowe i nie oddają ich kolejce',async()
  }finally{await db.close();}
 });
 
-test('formularz bez wolnych foteli wymaga akceptacji zasad puli bez fotela',async()=>{
+test('nowy formularz kieruje na 18:00 i nie wymaga zgody na stanie o 19:00',async()=>{
  const {JSDOM}=await import('jsdom');
  const html=await readFile(new URL('../rezerwacje.html',import.meta.url),'utf8');
  let posted=null;
  const dom=new JSDOM(html,{url:'https://www.golazoska.com/rezerwacje.html',runScripts:'dangerously',beforeParse(w){
-  w.fetch=async(url,options)=>url==='/api/status'?{ok:true,json:async()=>({open:true,waitlist:true,siteKey:'test',
-   overflow:{capacity:20,available:20},seats:[{id:'6-1',row:6,number:1,status:'taken'}]})}:
-   (posted=JSON.parse(options.body),{ok:true,json:async()=>({status:'verification',admission:'standing'})});
+  w.fetch=async(url,options)=>{
+   if(!options)return {ok:true,json:async()=>({siteKey:'test',seats:[]})};
+   posted=JSON.parse(options.body);return {ok:true,json:async()=>({admission:'interest'})};
+  };
  }});
  try{
   await new Promise(r=>setTimeout(r,30));const d=dom.window.document;
-  assert.equal(d.getElementById('waiting').checked,true);
-  assert.equal(d.getElementById('standingConsent').required,true);
-  d.getElementById('name').value='Jan Kowalski';d.getElementById('email').value='jan@example.com';
-  d.getElementById('phone').value='600123456';d.getElementById('phoneRepeat').value='600123456';
-  d.getElementById('form').dispatchEvent(new dom.window.Event('submit',{cancelable:true}));
-  assert.equal(posted,null);assert.match(d.getElementById('message').textContent,/Potwierdź zasady/);
-  d.getElementById('standingConsent').checked=true;
+  assert.equal(d.getElementById('waiting').checked,false);
+  assert.equal(d.getElementById('standingConsent').required,false);
+  d.getElementById('phone').value=d.getElementById('phoneRepeat').value='600123456';
   d.getElementById('form').dispatchEvent(new dom.window.Event('submit',{cancelable:true}));
   await new Promise(r=>setTimeout(r,30));
-  assert.equal(posted.acceptStanding,true);assert.deepEqual(posted.seatIds,[]);
-  assert.match(d.getElementById('message').textContent,/udział może odbyć się na stojąco/);
+  assert.equal(posted.screeningInterest,true);assert.equal(posted.acceptStanding,false);
+  assert.match(d.getElementById('message').textContent,/Po przydzieleniu miejsc/);
  }finally{dom.window.close();}
 });
 

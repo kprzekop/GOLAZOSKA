@@ -94,29 +94,28 @@ test('terminy JS są zgodne z SQL i dokładnie trzy doby przed seansem',()=>{
   assert.ok(schema.includes(local),local);
  }
 });
-test('formularz: plan, limit dwóch, konflikt miejsc i powtórzony telefon',async()=>{
+test('formularz 18:00: podgląd planu, limit dwóch, błąd i powtórzony telefon',async()=>{
  const db=await database();try{
   const seats=(await db.query('SELECT id,row_no AS row,seat_no AS number,pool FROM premiere_seats ORDER BY row_no,seat_no')).rows.map(s=>({...s,status:s.pool==='public'?'available':s.pool}));
   const html=await readFile(new URL('../rezerwacje.html',import.meta.url),'utf8');
   let posted=null;
   const dom=new JSDOM(html,{url:'https://www.golazoska.com/rezerwacje.html',runScripts:'dangerously',beforeParse(w){
    w.fetch=async(url,options)=>{
-    if(url==='/api/status')return {ok:true,json:async()=>({open:true,siteKey:'test',seats})};
+    if(!options)return {ok:true,json:async()=>({siteKey:'test',seats})};
     posted=JSON.parse(options.body);return {ok:false,json:async()=>({error:'SEATS_UNAVAILABLE'})};
    };
   }});
   await new Promise(r=>setTimeout(r,30));const d=dom.window.document;
   assert.equal(d.querySelectorAll('.seat').length,83);
-  assert.equal(d.querySelectorAll('.seat:disabled').length,56);
-  const buttons=[...d.querySelectorAll('.seat:not(:disabled)')];
-  for(const b of buttons.slice(0,5))b.click();
-  assert.equal(d.querySelectorAll('[aria-pressed="true"]').length,2);
+  assert.equal(d.querySelectorAll('#previewMap button').length,0);
+  assert.equal(d.getElementById('interestSeats').options.length,2);
+  d.getElementById('interestSeats').value='2';
   d.getElementById('name').value='Jan Kowalski';d.getElementById('email').value='widz@example.com';
   d.getElementById('phone').value='600 123 456';d.getElementById('phoneRepeat').value='600123457';
   d.getElementById('form').dispatchEvent(new dom.window.Event('submit',{cancelable:true}));
   assert.equal(posted,null);assert.match(d.getElementById('message').textContent,/identycznie/);
   d.getElementById('phoneRepeat').value='600123456';d.getElementById('form').dispatchEvent(new dom.window.Event('submit',{cancelable:true}));
-  await new Promise(r=>setTimeout(r,30));assert.equal(posted.seatIds.length,2);
+  await new Promise(r=>setTimeout(r,30));assert.equal(posted.seatIds.length,0);assert.equal(posted.screeningInterest,true);assert.equal(posted.seats,'2');
   assert.match(d.getElementById('message').textContent,/Ktoś właśnie/);dom.window.close();
  }finally{await db.close();}
 });

@@ -93,3 +93,24 @@ Migracja db/migrate-tickets.sql jest automatycznie stosowana przez lib/seat-poli
 ## Zaproszenia organizatora (rzędy 1–5)
 
 62 osobne kody są zapisywane w premiere_organizational_tickets, bez tworzenia rezerwacji internetowych ani zmiany puli foteli. Prywatny manifest ORGANIZATIONAL_TICKETS_JSON (Secret, Production) inicjuje rejestr raz; identyfikatory są trwałe. Nie zapisuj manifestu ani gotowych kodów w publicznym repozytorium. Kontrola /kontrola.html rozpoznaje oba rodzaje wejściówek i pokazuje rząd oraz miejsce. Wyszukiwanie np. „rząd 1” pokazuje zaproszenia danego rzędu. Stan revoked unieważnia kod. Dane organizacyjnych wejściówek są usuwane po 21 grudnia wraz z innymi zgłoszeniami; po tym terminie rejestr nie jest odtwarzany z manifestu.
+
+## Zamiana 19:00 → 18:00 (6 listopada 2026)
+
+Zweryfikowane zgłoszenia z listy rezerwowej i puli stojącej otrzymują propozycję
+foteli na 18:00, w kolejności zgłoszeń i dla całej grupy. Nowa propozycja blokuje
+fotele na maksymalnie 48 godzin. Wcześniej przydzielone, ważne wejściówki na 18:00
+pozostają ważne; ich właściciel również może wyrazić zgodę na zwolnienie 19:00.
+
+Otwarcie wiadomości/linku niczego nie zamienia. Widz zaznacza zgodę i wybiera
+„Zamieniam na 18:00”. Transakcja sprawdza pełny przydział i aktualny status,
+potwierdza 18:00, anuluje zgłoszenie na 19:00, zwalnia ewentualne fotele oraz
+unieważnia stare QR poprzez status rezerwacji. Powtórzenie żądania jest bezpieczne.
+Odmowa/wygaśnięcie nie anuluje 19:00. Anulowanie po zamianie nie przywraca 19:00.
+
+Migracja `db/migrate-preview-transfers.sql` uruchamia się automatycznie i jednokrotnie.
+Cron wysyła propozycje i ponawia niedostarczone potwierdzenia. Dodatkowy chroniony
+POST `/api/additional-screening` z `action: "dispatch-transfers"` pozwala uruchomić
+kampanię od razu; `dryRun: true` zwraca wyłącznie zbiorcze liczniki. Wymagany jest
+Bearer `ADMIN_TOKEN` lub wąsko uprawniony `TRANSFER_DISPATCH_TOKEN` (sekret serwera).
+Wysyłka używa rejestru dostarczeń, atomowych blokad i kluczy idempotencji Resend.
+Adresy techniczne `@example.invalid` i niezweryfikowane zgłoszenia są pomijane.
