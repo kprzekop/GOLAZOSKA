@@ -21,7 +21,8 @@ test('additional screenings copy seats and advance verified applicants independe
   `);
   for(const migration of ['layouts','bookings']){
    const sql=await readFile(new URL('../db/migrate-additional-screening-'+migration+'.sql',import.meta.url),'utf8');
-   await db.exec(sql);await db.exec(sql);
+   await db.exec(`DO $launch$ BEGIN ${sql.slice(sql.indexOf('BEGIN;')+6,sql.lastIndexOf('COMMIT;'))} END; $launch$;`);
+   await db.exec(sql);
   }
   const pools=await db.query("SELECT pool,count(*)::int AS count FROM additional_screening_seats GROUP BY pool ORDER BY pool");
   assert.deepEqual(pools.rows,[{pool:'organizational',count:75},{pool:'public',count:174}]);
