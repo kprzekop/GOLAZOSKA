@@ -24,10 +24,10 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 <p><strong>Wstęp bezpłatny.</strong> Sala widowiskowa MDK, Rynek Zygmunta Augusta 9.<br>Wejście od ul. Kościelnej, II piętro.</p>
 <section aria-labelledby="additional-screenings">
 <h2 id="additional-screenings">Kolejne seanse</h2>
-<p>Przygotowujemy terminy kolejnych seansów. Rezerwacja miejsc ruszy wkrótce.</p>
-<p>Propozycje miejsc na kolejne seanse wyślemy e-mailem w pierwszej kolejności osobom z listy rezerwowej oraz tym, które wybiorą wejście bez fotela i zaznaczą poniżej opcję pierwszeństwa.</p>
+<p>21 listopada 2026 o godz. 18:00 odbędzie się pokaz przedpremierowy. Po seansie zapraszamy na krótkie spotkanie z twórcami.</p>
+<p>Propozycje miejsc wyślemy e-mailem w pierwszej kolejności osobom z wejściem bez gwarancji fotela i zapisanym na listę.</p>
 </section>
-<p><a href="/rezerwacje.html?kolejne=1" id="interestLink">Zapisz się na kolejne seanse</a></p>
+<p><a href="/rezerwacje.html?kolejne=1" id="interestLink">Zapisz się na pokaz o 18:00</a></p>
 <section id="rules" aria-label="Jak zarezerwować">
 <h2>Jak to działa?</h2>
 <ol><li>Wybierz od 1 do 2 miejsc i podaj dane.</li><li>Kliknij link w e-mailu, aby potwierdzić zgłoszenie.</li><li id="confirmationRule"></li></ol>
@@ -120,7 +120,7 @@ function render(){
 }
 async function load(){
  if(interestMode){
-  document.querySelector('h1').textContent='Zapisz się na kolejne seanse';
+  document.querySelector('h1').textContent='Zapisz się na pokaz o 18:00';
   document.querySelector('.eyebrow').textContent='Goła Zośka 1812';
   document.getElementById('rules').hidden=true;
   document.getElementById('interestLink').textContent='Wróć do rezerwacji na premierę';
@@ -129,11 +129,11 @@ async function load(){
   document.getElementById('interestOptions').classList.remove('hidden');
   document.getElementById('contactHeading').textContent='Podaj dane kontaktowe';
   document.getElementById('verificationRule').textContent='Potwierdź zapis przez link w e-mailu w ciągu 24 godzin.';
-  document.getElementById('submit').textContent='Zapisz się na kolejne seanse';
+  document.getElementById('submit').textContent='Zapisz się na pokaz o 18:00';
   const response=await fetch('/api/reserve?interest=true'),data=await response.json();
   if(!response.ok||!data.siteKey)throw Error('Nie można teraz przyjmować zgłoszeń. Spróbuj później.');
   showChallenge(data.siteKey);
-  availability.textContent='Zapis dotyczy kolejnych seansów. Propozycje wyślemy po ustaleniu terminów, w miarę dostępności miejsc.';
+  availability.textContent='Zapis dotyczy pokazu przedpremierowego 21 listopada o godz. 18:00. Miejsce rezerwujesz, przyjmując propozycję z e-maila.';
   form.classList.remove('hidden');
   return;
  }
