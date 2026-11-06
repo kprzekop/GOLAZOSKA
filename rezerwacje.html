@@ -71,11 +71,6 @@ const form=document.getElementById('form'),message=document.getElementById('mess
 const selected=new Set(),waiting=document.getElementById('waiting'),map=document.getElementById('seatmap');
 let seatData=[],widget,standingAvailable=0;
 const interestMode=new URLSearchParams(location.search).get('kolejne')==='1';
-function verificationText(now=new Date()){
- const end=new Date('2026-11-21T19:00:00+01:00'),cutoff=new Date('2026-11-18T19:00:00+01:00');
- const deadline=new Date(Math.min(now.getTime()+86400000,end.getTime(),now<cutoff?cutoff.getTime():Infinity));
- return 'Po zgłoszeniu kliknij link w e-mailu do '+deadline.toLocaleString('pl-PL',{timeZone:'Europe/Warsaw',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})+'. Bez potwierdzenia zgłoszenie wygaśnie.';
-}
 function updateRules(){
  document.getElementById('confirmationRule').textContent='Sprawdź e-mail z wejściówką.';
  document.getElementById('verificationRule').textContent='Przydzieloną wejściówkę otrzymasz e-mailem.';
@@ -201,10 +196,7 @@ form.addEventListener('submit',async e=>{
   form.classList.add('hidden');availability.textContent='';
   if(d.admission==='interest'){message.textContent='Zapis przyjęty. Po przydzieleniu miejsc otrzymasz wejściówkę e-mailem.';return;}
   if(d.ticketUrl){const ticket=document.createElement('a');ticket.href=d.ticketUrl;ticket.textContent='Pokaż ważne wejściówki';message.append('Rezerwacja gotowa. ',ticket);return;}
-  message.textContent=(d.admission==='waiting'
-   ?'Zgłoszenie na listę rezerwową przyjęte. Przyjdź dopiero po otrzymaniu i przyjęciu propozycji. '
-   :d.admission==='standing'?'Przyjęto zgłoszenie wejścia na pokaz; udział może odbyć się na stojąco. '
-   :'Wybrane miejsca czekają na potwierdzenie. ')+verificationText();
+  message.textContent='Jesteś na liście rezerwowej. Potwierdź adres e-mail przez link w wiadomości.';
 
  }catch(err){message.textContent=err.message;window.turnstile?.reset(widget);}
  finally{button.disabled=false;}
