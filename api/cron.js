@@ -3,7 +3,7 @@ import {deliverPendingTickets,ticketUrl} from '../lib/tickets.js';
 import {advanceQueue} from '../lib/queue.js';
 import {applySeatPolicy} from '../lib/seat-policy.js';
 import {json,sql,sendMail,confirmUrl,tokenValid,escapeHtml} from '../lib/shared.js';
-import {EVENT_AT,REMIND_FROM,CONFIRM_BY,EVENT_DESCRIPTION,DEADLINE_LABEL,seatLabel} from '../lib/event.js';
+import {EVENT_AT,EVENT_DESCRIPTION,seatLabel} from '../lib/event.js';
 export default async function handler(req,res){
  if(req.method!=='GET')return json(res,405,{error:'METHOD'});
  if(!tokenValid((req.headers.authorization||'').replace(/^Bearer /i,''),process.env.CRON_SECRET))
@@ -21,22 +21,6 @@ export default async function handler(req,res){
   if(now>=new Date(EVENT_AT))return json(res,200,{done:true,additional});
   const queue=await advanceQueue(db);promoted=queue.promoted;sent=queue.sent;failed=queue.failed;
   const tickets=await deliverPendingTickets(db);sent+=tickets.sent;failed+=tickets.failed;
-  if(now<new Date(CONFIRM_BY)){
-   const canConfirm=now>=new Date(REMIND_FROM);
-   const reminders=await db`SELECT id,name,email,token,admission FROM premiere_reservations WHERE status='reserved'
-    AND (COALESCE(reminder_sent_at,verified_at,created_at)<=now()-interval '5 days'
-     OR (${canConfirm} AND (reminder_sent_at IS NULL OR reminder_sent_at<${REMIND_FROM}::timestamptz)))
-    ORDER BY created_at`;
-   for(const r of reminders){
-    try{
-     await sendMail(r.email,canConfirm?'Potwierdź udział do 18 listopada, godz. 19:00 – Goła Zośka':'Przypomnienie o rezerwacji – Goła Zośka',
-      '<p>Dzień dobry, '+escapeHtml(r.name)+'.</p><p>'+EVENT_DESCRIPTION+'.</p><p>'+(r.admission==='standing'?'Twoje wejście nie gwarantuje fotela; udział może odbyć się na stojąco.':'Masz rezerwację miejsca siedzącego.')+'</p>'+
-      (canConfirm?'<p><a href="'+confirmUrl(r.token)+'">Potwierdź udział</a> do '+DEADLINE_LABEL+'. Brak potwierdzenia zwalnia miejsca.</p>'
-       :'<p>Udział będzie można potwierdzić od 14 listopada, godz. 19:00, do '+DEADLINE_LABEL+'. Zachowaj <a href="'+confirmUrl(r.token)+'">link do rezerwacji</a>.</p>'));
-     await db`UPDATE premiere_reservations SET reminder_sent_at=now() WHERE id=${r.id}::uuid AND status='reserved'`;sent++;
-    }catch{failed++;}
-   }
-  }
   if(now>=new Date('2026-11-19T00:00:00+01:00')){
    const confirmed=await db`SELECT r.id,r.name,r.email,r.token,r.seats,r.admission,ARRAY(SELECT s.id FROM premiere_seats s
     WHERE s.reservation_id=r.id ORDER BY s.row_no,s.seat_no) AS seat_ids FROM premiere_reservations r

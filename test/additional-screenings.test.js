@@ -33,6 +33,7 @@ test('additional screenings copy seats and advance verified applicants independe
   assert.ok(first);
   const firstOffer=await db.query('SELECT name,(SELECT count(*)::int FROM additional_screening_seats WHERE booking_id=b.id) AS seats FROM additional_screening_bookings b WHERE b.id=$1',[first]);
   assert.deepEqual(firstOffer.rows,[{name:'First',seats:2}]);
+  assert.equal((await db.query('SELECT status FROM additional_screening_bookings WHERE id=$1',[first])).rows[0].status,'confirmed');
   const second=await next(2);
   assert.ok(second);
   assert.equal(await next(3),null);

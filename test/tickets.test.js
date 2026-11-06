@@ -64,12 +64,11 @@ test('kontrola: osobne wejścia i atomowa blokada podwójnego skanu na dwóch te
  assert.equal((await call(tickets,'GET',{}, {ticket:ts[1].id})).code,404);
  }finally{await db.close();}
 });
-test('brak wejściówek dla niepotwierdzonych i listy rezerwowej; ponowienie maila po awarii',async()=>{
+test('wejściówka po przydziale i brak wejściówek dla listy rezerwowej; ponowienie maila po awarii',async()=>{
  await setup();try{
  const r=await create(['6-1'],false);
  assert.equal((await ensureTickets(sql(),r.booking_id)).length,0);
- assert.equal((await call(tickets,'GET',{}, {token:r.booking_token})).code,409);
- await db.query("SELECT * FROM premiere_action($1,'confirm')",[r.booking_token]);
+ assert.equal((await call(tickets,'GET',{}, {token:r.booking_token})).code,200);
  fail=true;assert.equal((await deliverTickets(sql(),r.booking_id)).failed,1);fail=false;
  assert.equal((await deliverTickets(sql(),r.booking_id)).sent,1);
  await db.query('UPDATE premiere_config SET standing_capacity=0');

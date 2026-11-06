@@ -64,13 +64,13 @@ test('API: formularz → baza → e-mail → weryfikacja → panel → anulowani
   assert.equal((await call(reserve,'POST',{...data,seatIds:['6-1','6-2','6-3']})).body.error,'INVALID_INPUT');
   assert.equal((await call(reserve,'POST',{...data,seatIds:[],waiting:true,seats:3,acceptStanding:true})).body.error,'INVALID_INPUT');
   assert.equal((await call(reserve,'POST',{...data,seatIds:['6-12']})).code,409);
-  assert.equal((await call(reserve,'POST',data)).code,200);assert.equal(mails.length,1);
-  assert.match(mails[0][2],/rząd 6, miejsce 1/);assert.match(mails[0][2],/18 listopada 2026 o godz. 19:00/);
-  assert.match(mails[0][2],/Kościelnej/);
+  assert.equal((await call(reserve,'POST',data)).code,200);assert.equal(qrMails.length,1);
+  assert.match(qrMails[0][2],/rząd 6, miejsce 1/);
+  assert.match(qrMails[0][2],/Kościelnej/);
   const [row]=(await db.query('SELECT * FROM premiere_reservations')).rows;
   assert.equal(row.phone,'600123456');
-  const verify=await call(booking,'POST',{token:row.token,action:'confirm'});
-  assert.equal(verify.code,200);assert.equal(verify.body.status,'reserved');assert.equal(verify.body.canConfirm,false);
+  const verify=await call(booking,'GET',{},{token:row.token});
+  assert.equal(verify.code,200);assert.equal(verify.body.status,'confirmed');assert.equal(verify.body.canConfirm,false);
   assert.deepEqual(verify.body.seatIds,['6-1','6-2']);
   assert.equal((await call(reserve,'POST',{...data,email:'other@example.com'})).body.error,'SEATS_UNAVAILABLE');
   const list=await call(admin,'GET',{},{} ,'Bearer admin-test');assert.equal(list.body.reservations[0].phone,'600123456');
@@ -79,8 +79,8 @@ test('API: formularz → baza → e-mail → weryfikacja → panel → anulowani
   assert.equal((await call(booking,'POST',{token:row.token,action:'cancel'})).body.status,'cancelled');
   assert.equal((await call(status)).body.seats.filter(s=>s.status==='available').length,18);
   failMail=true;
-  assert.equal((await call(reserve,'POST',{...data,email:'failure@example.com'})).body.error,'MAIL_UNAVAILABLE');
-  assert.equal((await call(status)).body.seats.filter(s=>s.status==='available').length,18);
+  assert.equal((await call(reserve,'POST',{...data,email:'failure@example.com'})).body.status,'confirmed');
+  assert.equal((await call(status)).body.seats.filter(s=>s.status==='available').length,16);
  }finally{globalThis.fetch=fetchBefore;failMail=false;await db.close();mock.timers.reset();}
 });
 
@@ -96,18 +96,16 @@ test('zadanie dzienne: prośba o potwierdzenie, termin zwolnienia, przypomnienie
   const [row]=(await db.query("SELECT * FROM premiere_create('Jan Kowalski','jan@example.com','600123456',ARRAY['6-1'],1,false)")).rows;
   await db.query("SELECT * FROM premiere_action($1,'confirm')",[row.booking_token]);
   await time('2026-11-14T19:00:00+01:00');
-  assert.equal((await call(cron,'GET',{},{} ,'Bearer cron-test')).body.sent,1);
-  assert.match(mails[0][2],/18 listopada 2026 o godz. 19:00/);
-  await call(cron,'GET',{},{} ,'Bearer cron-test');assert.equal(mails.length,1);
+  await call(cron,'GET',{},{} ,'Bearer cron-test');assert.equal(mails.length,0);
   await time('2026-11-18T19:00:00+01:00');await call(status);
-  assert.equal((await db.query('SELECT status FROM premiere_reservations WHERE id=$1',[row.booking_id])).rows[0].status,'expired');
+  assert.equal((await db.query('SELECT status FROM premiere_reservations WHERE id=$1',[row.booking_id])).rows[0].status,'confirmed');
   await db.exec("ALTER TABLE premiere_reservations ALTER COLUMN created_at SET DEFAULT '2026-11-18 19:00+01'::timestamptz");
-  const [late]=(await db.query("SELECT * FROM premiere_create('Jan Kowalski','late@example.com','600123456',ARRAY['6-1'],1,false)")).rows;
+  const [late]=(await db.query("SELECT * FROM premiere_create('Jan Kowalski','late@example.com','600123456',ARRAY['6-2'],1,false)")).rows;
   await db.query("SELECT * FROM premiere_action($1,'confirm')",[late.booking_token]);
   await time('2026-11-19T19:00:00+01:00');
-  assert.equal((await call(cron,'GET',{},{} ,'Bearer cron-test')).body.sent,2);
+  assert.equal((await call(cron,'GET',{},{} ,'Bearer cron-test')).body.sent,3);
   assert.ok(qrMails.length>0);assert.equal(qrMails.at(-1)[3].length,1);
-  assert.match(mails[1][2],/Kościelnej/);assert.match(mails[1][2],/rząd 6, miejsce 1/);
+  assert.match(mails[1][2],/Kościelnej/);assert.match(mails[1][2],/rząd 6, miejsce 2/);
   await time('2026-12-22T19:00:00+01:00');
   assert.equal((await call(cron,'GET',{},{} ,'Bearer cron-test')).body.purged,true);
   assert.equal((await db.query('SELECT count(*)::int n FROM premiere_reservations')).rows[0].n,0);
@@ -120,7 +118,7 @@ test('wyłączenie rzędu 5 nie anuluje ani nie nadpisuje istniejącej rezerwacj
  try{
   await db.query("SELECT * FROM premiere_create('Jan Kowalski','existing@example.com','600123456',ARRAY['5-1'],1,false)");
   const result=await call(status);assert.equal(result.code,503);
-  assert.equal((await db.query("SELECT status FROM premiere_reservations WHERE email='existing@example.com'")).rows[0].status,'verification');
+  assert.equal((await db.query("SELECT status FROM premiere_reservations WHERE email='existing@example.com'")).rows[0].status,'confirmed');
   assert.equal((await db.query("SELECT count(*)::int n FROM premiere_seats WHERE row_no=5 AND pool='organizational'")).rows[0].n,0);
   assert.equal((await db.query('SELECT guest_capacity FROM premiere_config WHERE id=1')).rows[0].guest_capacity,50);
  }finally{await db.close();mock.timers.reset();}
@@ -177,10 +175,10 @@ test('publiczny formularz przydziela pulę 20 po zgodzie, a kolejne zgłoszenia 
   assert.equal((await call(reserve,'POST',body)).body.error,'INVALID_INPUT');
   for(let i=0;i<10;i++){
    const r=await call(reserve,'POST',{...body,email:'overflow'+i+'@example.com',acceptStanding:true});
-   assert.equal(r.code,200);assert.equal(r.body.admission,'standing');assert.equal(r.body.status,'verification');
+   assert.equal(r.code,200);assert.equal(r.body.admission,'standing');assert.equal(r.body.status,'confirmed');
   }
   assert.equal((await db.query('SELECT premiere_standing_used() AS n')).rows[0].n,20);
-  assert.match(mails[0][2],/udział może odbyć się na stojąco/);
+  assert.match(qrMails.at(-1)[2],/Wejście na stojąco/);
   const last=await call(reserve,'POST',{...body,email:'last@example.com',seats:1,acceptStanding:true});
   assert.equal(last.code,200);assert.equal(last.body.admission,'waiting');assert.equal(last.body.status,'waiting');
   assert.match(mails.at(-1)[2],/nie uprawnia do wejścia/);

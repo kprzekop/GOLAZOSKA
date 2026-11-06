@@ -1,6 +1,7 @@
+import {deliverTickets,ticketUrl} from '../lib/tickets.js';
 import {advanceQueue} from '../lib/queue.js';
 import {applySeatPolicy} from '../lib/seat-policy.js';
-import {BASE,escapeHtml,json,sql,sendMail,actionMail} from '../lib/shared.js';
+import {escapeHtml,json,sql,sendMail,actionMail} from '../lib/shared.js';
 import {validateBooking,isReservationPeriod} from '../lib/event.js';
 export default async function handler(req,res){
  if(req.method==='GET'&&req.query?.interest==='true')return json(res,200,{siteKey:process.env.TURNSTILE_SITE_KEY});
@@ -36,22 +37,18 @@ export default async function handler(req,res){
  verified_at timestamptz
 )`
    ]);
-   const [entry]=await db`INSERT INTO additional_screening_interest(name,email,phone,seats)
-    VALUES(${name},${email},${phone},${seats})
+   const [entry]=await db`INSERT INTO additional_screening_interest(name,email,phone,seats,verified_at)
+    VALUES(${name},${email},${phone},${seats},now())
     ON CONFLICT(email) DO UPDATE SET id=gen_random_uuid(),name=excluded.name,phone=excluded.phone,
-     seats=excluded.seats,created_at=now()
+     seats=excluded.seats,created_at=now(),verified_at=now()
     WHERE additional_screening_interest.verified_at IS NULL
-     AND additional_screening_interest.created_at<=now()-interval '24 hours'
+
     RETURNING id`;
    if(!entry)return json(res,409,{error:'DUPLICATE'});
    try{
-    await sendMail(email,'Potwierdź zapis na pokaz o 18:00 – Goła Zośka 1812',
-     '<p>Dzień dobry, '+escapeHtml(name)+'.</p><p><a href="'+BASE+'/dodatkowy-seans.html?zapis='+entry.id+
-     '">Potwierdź zgłoszenie w ciągu 24 godzin</a>. Pokaz przedpremierowy odbędzie się 21 listopada o 18:00. Wyślemy propozycję miejsc w miarę dostępności.</p>');
-   }catch{
-    await db`DELETE FROM additional_screening_interest WHERE id=${entry.id}::uuid AND verified_at IS NULL`;
-    return json(res,503,{error:'MAIL_UNAVAILABLE'});
-   }
+    await sendMail(email,'Przyjęliśmy zapis na pokaz o 18:00 – Goła Zośka 1812',
+     '<p>Dzień dobry, '+escapeHtml(name)+'.</p><p>Przyjęliśmy zapis na pokaz przedpremierowy 21 listopada o 18:00. Jeśli przydzielimy miejsca, wyślemy wejściówkę e-mailem.</p>');
+   }catch{console.error('Screening signup receipt failed');}
    return json(res,200,{admission:'interest'});
   }
   await applySeatPolicy(db);
@@ -64,6 +61,14 @@ export default async function handler(req,res){
   }
   const [row]=await db`SELECT * FROM premiere_create(${name},${email},${phone},${seatIds}::text[],${seats},${waiting})`;
   const [details]=await db`SELECT admission FROM premiere_reservations WHERE id=${row.booking_id}::uuid`;
+  if(details.admission!=='waiting'){
+   const [confirmed]=await db`UPDATE premiere_reservations SET status='confirmed',verified_at=COALESCE(verified_at,now())
+    WHERE id=${row.booking_id}::uuid AND status IN ('verification','reserved','confirmed') RETURNING id`;
+   if(!confirmed)return json(res,409,{error:'SEATS_UNAVAILABLE'});
+   if(encorePriority)await db`UPDATE premiere_reservations SET encore_priority=true WHERE id=${row.booking_id}::uuid`;
+   await deliverTickets(db,row.booking_id);
+   return json(res,200,{status:'confirmed',admission:details.admission,ticketUrl:ticketUrl(row.booking_token)});
+  }
   try{
    if(encorePriority)await db`UPDATE premiere_reservations SET encore_priority=true WHERE id=${row.booking_id}::uuid`;
    await sendMail(email,details.admission==='waiting'?'Potwierdź adres – lista rezerwowa Goła Zośka':details.admission==='standing'?'Potwierdź wejście bez gwarancji fotela – Goła Zośka':'Potwierdź adres – Goła Zośka 1812',
