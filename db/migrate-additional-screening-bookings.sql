@@ -91,8 +91,8 @@ BEGIN
  ORDER BY r.priority,r.created_at,r.id LIMIT 1;
  IF NOT FOUND OR applicant.seats>available THEN RETURN NULL; END IF;
 
- INSERT INTO additional_screening_bookings(screening_id,source_id,name,email,expires_at)
- VALUES(p_screening,applicant.id,applicant.name,applicant.email,least(showtime,now()+interval '48 hours'))
+ INSERT INTO additional_screening_bookings(screening_id,source_id,name,email,status,expires_at)
+ VALUES(p_screening,applicant.id,applicant.name,applicant.email,CASE WHEN p_screening=1 THEN 'confirmed' ELSE 'offered' END,least(showtime,now()+interval '48 hours'))
  RETURNING id INTO booking;
  WITH chosen AS (
   SELECT row_no,seat_no FROM additional_screening_seats
