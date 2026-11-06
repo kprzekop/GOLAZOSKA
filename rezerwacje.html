@@ -30,7 +30,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 <p><a href="/rezerwacje.html?kolejne=1" id="interestLink">Zapisz się na pokaz o 18:00</a></p>
 <section id="rules" aria-label="Jak zarezerwować">
 <h2>Jak to działa?</h2>
-<ol><li>Wybierz od 1 do 2 miejsc i podaj dane.</li><li>Kliknij link w e-mailu, aby potwierdzić zgłoszenie.</li><li id="confirmationRule"></li></ol>
+<ol><li>Wybierz od 1 do 2 miejsc i podaj dane.</li><li>Po przydzieleniu wejściówka jest od razu ważna.</li><li id="confirmationRule"></li></ol>
 <p class="muted">Zrezygnować możesz w każdej chwili przez link w e-mailu.</p>
 </section>
 <p id="availability" aria-live="polite">Sprawdzam dostępność…</p>
@@ -53,7 +53,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
  <label class="inline"><input id="standingConsent" type="checkbox"><span id="consentText"></span></label>
  </div></div>
  </div>
- <div id="interestOptions" class="hidden"><label for="interestSeats">Liczba osób</label><select id="interestSeats"><option>1</option><option>2</option></select></div>
+ <div id="interestOptions" class="hidden"><div class="screen">EKRAN · POKAZ O 18:00</div><div id="previewMap" class="seatmap" aria-label="Plan sali na 18:00"></div><label for="interestSeats">Liczba osób</label><select id="interestSeats"><option>1</option><option>2</option></select></div>
  <h2 id="contactHeading">2. Podaj dane</h2>
  <label for="name">Imię i nazwisko</label><input id="name" name="name" maxlength="120" minlength="2" required autocomplete="name">
  <label for="email">Adres e-mail</label><input id="email" name="email" type="email" maxlength="254" required autocomplete="email">
@@ -61,7 +61,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
  <label for="phoneRepeat">Powtórz numer telefonu</label><input id="phoneRepeat" name="phoneRepeat" type="tel" maxlength="25" required autocomplete="off">
  <label class="hp" for="website">Pozostaw puste</label><input class="hp" id="website" name="website" tabindex="-1" autocomplete="off">
  <div id="challenge"></div>
- <h2>3. Potwierdź zgłoszenie</h2><p id="verificationRule"></p>
+ <h2>3. Odbierz wejściówkę</h2><p id="verificationRule"></p>
  <p class="muted">Dane służą do obsługi rezerwacji i kontaktu w sprawie pokazu.</p>
  <p class="muted">Przed wysłaniem zapoznaj się z <a href="/regulamin.html">regulaminem rezerwacji i listy rezerwowej</a> oraz <a href="/prywatnosc.html">informacją o przetwarzaniu danych</a>.</p>
  <button id="submit" type="submit">Zarezerwuj</button>
@@ -77,9 +77,8 @@ function verificationText(now=new Date()){
  return 'Po zgłoszeniu kliknij link w e-mailu do '+deadline.toLocaleString('pl-PL',{timeZone:'Europe/Warsaw',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})+'. Bez potwierdzenia zgłoszenie wygaśnie.';
 }
 function updateRules(){
- const early=Date.now()<new Date('2026-11-14T19:00:00+01:00').getTime();
- document.getElementById('confirmationRule').textContent=early?'14 listopada wyślemy przypomnienie. Potwierdź udział do 18 listopada, godz. 19:00. Bez potwierdzenia zwolnimy Twoje wejście.':'Potwierdzenie w e-mailu oznacza również potwierdzenie udziału. Nie musisz robić tego drugi raz.';
- document.getElementById('verificationRule').textContent=verificationText();
+ document.getElementById('confirmationRule').textContent='Sprawdź e-mail z wejściówką.';
+ document.getElementById('verificationRule').textContent='Przydzieloną wejściówkę otrzymasz e-mailem.';
 }
 function updateVariant(){
  const isStanding=Number(document.getElementById('seats').value)<=standingAvailable;
@@ -128,12 +127,29 @@ async function load(){
   document.getElementById('premiereOptions').classList.add('hidden');
   document.getElementById('interestOptions').classList.remove('hidden');
   document.getElementById('contactHeading').textContent='Podaj dane kontaktowe';
-  document.getElementById('verificationRule').textContent='Potwierdź zapis przez link w e-mailu w ciągu 24 godzin.';
+  document.getElementById('verificationRule').textContent='Po przydzieleniu miejsc otrzymasz wejściówkę e-mailem.';
   document.getElementById('submit').textContent='Zapisz się na pokaz o 18:00';
   const response=await fetch('/api/reserve?interest=true'),data=await response.json();
   if(!response.ok||!data.siteKey)throw Error('Nie można teraz przyjmować zgłoszeń. Spróbuj później.');
   showChallenge(data.siteKey);
-  availability.textContent='Zapis dotyczy pokazu przedpremierowego 21 listopada o godz. 18:00. Miejsce rezerwujesz, przyjmując propozycję z e-maila.';
+  try{
+   const plan=await fetch('/api/additional-screening?plan=18');
+   if(!plan.ok)throw Error();
+   const {seats}=await plan.json(),map=document.getElementById('previewMap');
+   map.replaceChildren();
+   for(let row=1;row<=7;row++){
+    const line=document.createElement('div');line.className='row';
+    const label=document.createElement('span');label.className='row-label';label.textContent='Rząd '+row;line.append(label);
+    for(const seat of seats.filter(seat=>seat.row===row)){
+     const place=document.createElement('span');place.className='seat';
+     place.textContent=seat.number;place.title=seat.status==='available'?'Wolne':'Niedostępne';
+     if(seat.status!=='available')place.style.opacity='.45';
+     line.append(place);
+    }
+    map.append(line);
+   }
+  }catch{document.getElementById('previewMap').textContent='Plan chwilowo niedostępny.';}
+  availability.textContent='Zapis dotyczy pokazu przedpremierowego 21 listopada o godz. 18:00. System automatycznie przydzieli wolne fotele i wyśle ważną wejściówkę e-mailem.';
   form.classList.remove('hidden');
   return;
  }
@@ -183,7 +199,8 @@ form.addEventListener('submit',async e=>{
   const errors={DUPLICATE:'Ten e-mail ma już aktywne zgłoszenie. Sprawdź skrzynkę.',SEATS_UNAVAILABLE:'Ktoś właśnie zarezerwował wybrane miejsca. Wybierz inne na odświeżonym planie.',CHALLENGE:'Potwierdź zabezpieczenie formularza.',INVALID_INPUT:'Sprawdź dane i zgodność obu numerów telefonu.',MAIL_UNAVAILABLE:'Nie udało się wysłać wiadomości. Zgłoszenie zostało anulowane; spróbuj ponownie.'};
   if(!r.ok){if(d.error==='SEATS_UNAVAILABLE')await load();throw Error(errors[d.error]||'Nie udało się przyjąć zgłoszenia. Spróbuj później.');}
   form.classList.add('hidden');availability.textContent='';
-  if(d.admission==='interest'){message.textContent='Sprawdź skrzynkę i potwierdź zapis przez link w e-mailu w ciągu 24 godzin.';return;}
+  if(d.admission==='interest'){message.textContent='Zapis przyjęty. Po przydzieleniu miejsc otrzymasz wejściówkę e-mailem.';return;}
+  if(d.ticketUrl){const ticket=document.createElement('a');ticket.href=d.ticketUrl;ticket.textContent='Pokaż ważne wejściówki';message.append('Rezerwacja gotowa. ',ticket);return;}
   message.textContent=(d.admission==='waiting'
    ?'Zgłoszenie na listę rezerwową przyjęte. Przyjdź dopiero po otrzymaniu i przyjęciu propozycji. '
    :d.admission==='standing'?'Przyjęto zgłoszenie wejścia na pokaz; udział może odbyć się na stojąco. '
