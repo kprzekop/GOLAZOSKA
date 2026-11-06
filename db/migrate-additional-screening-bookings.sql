@@ -78,16 +78,17 @@ BEGIN
  SELECT count(*) INTO available FROM additional_screening_seats
  WHERE screening_id=p_screening AND pool='public' AND booking_id IS NULL;
  SELECT r.* INTO applicant FROM (
-  SELECT id,name,email,seats,created_at FROM premiere_reservations
+  SELECT id,name,email,seats,created_at,0 AS priority FROM premiere_reservations
   WHERE verified_at IS NOT NULL AND ((admission='waiting' AND status IN ('waiting','expired'))
+   OR (p_screening=1 AND admission='standing' AND status IN ('reserved','confirmed') AND email NOT LIKE '%@example.invalid')
    OR (encore_priority AND admission IN ('standing','seated') AND status IN ('reserved','confirmed','expired')))
   UNION ALL
-  SELECT id,name,email,seats,created_at FROM additional_screening_interest WHERE verified_at IS NOT NULL
+  SELECT id,name,email,seats,created_at,1 AS priority FROM additional_screening_interest WHERE verified_at IS NOT NULL
  ) r WHERE NOT EXISTS (
   SELECT 1 FROM additional_screening_bookings b WHERE (b.email=r.email OR b.source_id=r.id)
   AND (b.screening_id=p_screening OR b.status IN ('offered','confirmed'))
  )
- ORDER BY r.created_at,r.id LIMIT 1;
+ ORDER BY r.priority,r.created_at,r.id LIMIT 1;
  IF NOT FOUND OR applicant.seats>available THEN RETURN NULL; END IF;
 
  INSERT INTO additional_screening_bookings(screening_id,source_id,name,email,expires_at)
