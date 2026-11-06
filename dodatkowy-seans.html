@@ -29,7 +29,7 @@ async function load(action){
    :await fetch('/api/additional-screening?id='+encodeURIComponent(id));
   if(!response.ok)throw Error(response.status===404||response.status===400?'Nie znaleziono propozycji.':'Nie udało się pobrać propozycji. Spróbuj ponownie.');
   const offer=await response.json();
-  document.getElementById('when').textContent=format.format(new Date(offer.starts_at))+' · sala widowiskowa MDK, Rynek Zygmunta Augusta 9. Wejście od ul. Kościelnej, II piętro.';
+  document.getElementById('when').textContent=format.format(new Date(offer.starts_at))+' · po seansie krótkie spotkanie z twórcami · sala widowiskowa MDK, Rynek Zygmunta Augusta 9. Wejście od ul. Kościelnej, II piętro.';
   document.getElementById('seats').textContent=offer.seats.map(id=>{const [row,seat]=id.split('-');return 'Rząd '+row+', miejsce '+seat;}).join(' · ');
   status.textContent=({offered:'Przyjmij propozycję do '+format.format(new Date(offer.expires_at))+'.',confirmed:'Twoja rezerwacja jest potwierdzona. Zachowaj ten link.',declined:'Propozycja odrzucona.',cancelled:'Rezerwacja anulowana.',expired:'Propozycja wygasła.'})[offer.status];
   accept.hidden=offer.status!=='offered';
@@ -49,7 +49,7 @@ if(signup){
    const response=await fetch('/api/additional-screening',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({id:signup,action:'verify-interest'})});
    if(!response.ok)throw Error(response.status===404?'Ten link wygasł. Zapisz się ponownie na stronie rezerwacji.':'Nie udało się potwierdzić zapisu. Spróbuj ponownie.');
-   status.textContent='Zapis potwierdzony. Gdy ustalimy terminy, wyślemy propozycję w miarę dostępności miejsc.';
+   status.textContent='Zapis potwierdzony. Propozycję miejsc na pokaz o 18:00 wyślemy w miarę dostępności.';
    accept.hidden=true;
   }catch(error){status.textContent=error.message;}
   finally{accept.disabled=false;}
