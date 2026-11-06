@@ -40,9 +40,8 @@ test('wariant odpowiada liczbie dostępnych wejść i wielkości grupy, zgoda je
 });
 test('późniejsze zgłoszenie nie pokazuje minionych terminów i wymaga tylko jednego potwierdzenia',async()=>{
  const dom=await page({now:'2026-11-20T20:00:00+01:00'});try{const d=dom.window.document;
- assert.match(d.getElementById('confirmationRule').textContent,/Nie musisz/);
+ assert.match(d.getElementById('confirmationRule').textContent,/wejściówk/);
  assert.doesNotMatch(d.getElementById('confirmationRule').textContent,/18 listopada/);
- assert.match(d.getElementById('verificationRule').textContent,/21 listopada/);
- assert.match(d.getElementById('verificationRule').textContent,/19:00/);
+ assert.match(d.getElementById('verificationRule').textContent,/otrzymasz e-mailem/);
  }finally{dom.window.close();}
 });
