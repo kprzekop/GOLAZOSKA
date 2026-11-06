@@ -196,7 +196,7 @@ form.addEventListener('submit',async e=>{
   form.classList.add('hidden');availability.textContent='';
   if(d.admission==='interest'){message.textContent='Zapis przyjęty. Po przydzieleniu miejsc otrzymasz wejściówkę e-mailem.';return;}
   if(d.ticketUrl){const ticket=document.createElement('a');ticket.href=d.ticketUrl;ticket.textContent='Pokaż ważne wejściówki';message.append('Rezerwacja gotowa. ',ticket);return;}
-  message.textContent='Jesteś na liście rezerwowej. Potwierdź adres e-mail przez link w wiadomości.';
+  message.textContent=d.admission==='standing'?'Wejściówka jest ważna. Udział może odbyć się na stojąco.':'Jesteś na liście rezerwowej. Potwierdź adres e-mail przez link w wiadomości.';
 
  }catch(err){message.textContent=err.message;window.turnstile?.reset(widget);}
  finally{button.disabled=false;}
