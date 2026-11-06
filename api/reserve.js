@@ -45,9 +45,9 @@ export default async function handler(req,res){
     RETURNING id`;
    if(!entry)return json(res,409,{error:'DUPLICATE'});
    try{
-    await sendMail(email,'Potwierdź zapis na kolejne seanse – Goła Zośka 1812',
+    await sendMail(email,'Potwierdź zapis na pokaz o 18:00 – Goła Zośka 1812',
      '<p>Dzień dobry, '+escapeHtml(name)+'.</p><p><a href="'+BASE+'/dodatkowy-seans.html?zapis='+entry.id+
-     '">Potwierdź zgłoszenie w ciągu 24 godzin</a>. Kiedy ustalimy terminy, wyślemy propozycję miejsc w miarę dostępności.</p>');
+     '">Potwierdź zgłoszenie w ciągu 24 godzin</a>. Pokaz przedpremierowy odbędzie się 21 listopada o 18:00. Wyślemy propozycję miejsc w miarę dostępności.</p>');
    }catch{
     await db`DELETE FROM additional_screening_interest WHERE id=${entry.id}::uuid AND verified_at IS NULL`;
     return json(res,503,{error:'MAIL_UNAVAILABLE'});
