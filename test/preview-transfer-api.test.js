@@ -37,3 +37,28 @@ test('API, migration and durable emails: one proposal, no GET side effect, atomi
   await call('POST',{id,action:'transfer'});assert.equal(mails.length,2);
  }finally{await db.close();}
 });
+
+test('organizer trial sends only five selected printed tickets to their contact, with safe retry',async()=>{
+ db=new PGlite();mails=[];fail=false;
+ try{
+  for(const file of ['schema.sql','migrate-admissions.sql','migrate-tickets.sql'])await db.exec(await readFile(new URL('../db/'+file,import.meta.url),'utf8'));
+  await initializePreviewScreening(tag);
+  await db.exec("UPDATE additional_screenings SET starts_at=now()+interval '7 days' WHERE id=1");
+  const {randomUUID}=await import('node:crypto');
+  const ids=Array.from({length:5},()=>randomUUID());
+  for(const id of ids)await db.query("INSERT INTO premiere_reservations(id,name,email,phone,seats,status,admission,verified_at) VALUES($1::uuid,'Organizer','druk-'||$1::text||'@example.invalid','000000000',1,'confirmed','standing',now())",[id]);
+  await db.exec("INSERT INTO premiere_reservations(name,email,phone,seats,status,admission,verified_at) VALUES('Other','other@example.test','600123456',1,'confirmed','standing',now())");
+  process.env.STANDING_GUEST_PRINT_IDS=JSON.stringify(ids.slice(0,3));
+  process.env.STANDING_GUEST_PRINT_EXTRA_IDS=JSON.stringify(ids.slice(3));
+  process.env.STANDING_GUEST_PRINT_CONTACT='organizer@example.test';
+  const {sendOrganizerTransferTest}=await import('../lib/organizer-transfer-test.js');
+  const result=await sendOrganizerTransferTest(tag);
+  assert.equal(result.sent,5);assert.equal(result.failed,0);assert.equal(result.totalSent,5);
+  assert.equal(mails.length,5);assert.ok(mails.every(mail=>mail[0]==='organizer@example.test'&&mail[1].startsWith('[PRÓBA]')));
+  assert.equal((await sendOrganizerTransferTest(tag)).sent,0);assert.equal(mails.length,5);
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM premiere_reservations WHERE status='confirmed'")).rows[0].n,6);
+ }finally{
+  delete process.env.STANDING_GUEST_PRINT_IDS;delete process.env.STANDING_GUEST_PRINT_EXTRA_IDS;delete process.env.STANDING_GUEST_PRINT_CONTACT;
+  await db.close();
+ }
+});
