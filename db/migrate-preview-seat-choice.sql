@@ -1,4 +1,8 @@
 BEGIN;
+-- A viewer's direct reservation for 18:00 is independent of a premiere signup.
+UPDATE additional_screening_bookings b SET transfer_source_id=NULL
+WHERE b.screening_id=1 AND b.transferred_at IS NULL
+ AND EXISTS(SELECT 1 FROM additional_screening_interest i WHERE i.id=b.source_id);
 UPDATE additional_screening_bookings b SET status='offered',expires_at=least(s.starts_at,now()+interval '48 hours'),
  transfer_sent_at=NULL,transfer_claimed_at=NULL
 FROM additional_screenings s
