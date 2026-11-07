@@ -66,13 +66,26 @@ export default async function handler(req,res){
   }
   if(!await additionalScreeningsReady(db))return json(res,404,{error:'NOT_FOUND'});
   await initializePreviewScreening(db);
-  if(req.method==='POST')await db`SELECT additional_screening_reply(${id}::uuid,${action})`;
+  if(req.method==='POST'&&action==='transfer'){
+   const seats=req.body.seatIds;
+   if(req.body.consent!==true||!Array.isArray(seats)||seats.length<1||seats.length>2
+    ||seats.some(seat=>typeof seat!=='string'||!/^([1-7])-([1-9]|1[0-3])$/.test(seat)))return json(res,400,{error:'INVALID_INPUT'});
+   await db`SELECT preview_choose_and_transfer(${id}::uuid,${seats}::text[])`;
+  }else if(req.method==='POST')await db`SELECT additional_screening_reply(${id}::uuid,${action})`;
   if(req.method==='POST'&&action==='transfer')await deliverTransferConfirmation(db,id);
   const [offer]=await db`SELECT b.transfer_source_id IS NOT NULL AS transfer, b.transferred_at, CASE WHEN b.status='offered' AND b.expires_at<=now()
    THEN 'expired' ELSE b.status END AS status,s.starts_at,b.expires_at,
    ARRAY(SELECT p.row_no||'-'||p.seat_no FROM additional_screening_seats p
     WHERE p.booking_id=b.id ORDER BY p.row_no,p.seat_no) AS seats
    FROM additional_screening_bookings b JOIN additional_screenings s ON s.id=b.screening_id WHERE b.id=${id}::uuid`;
+  if(offer&&offer.transfer&&!offer.transferred_at){
+   const [group]=await db`SELECT r.seats FROM premiere_reservations r
+    JOIN additional_screening_bookings b ON b.transfer_source_id=r.id WHERE b.id=${id}::uuid`;
+   offer.groupSize=group?.seats||offer.seats.length;
+   offer.plan=await db`SELECT row_no AS row,seat_no AS number,
+    CASE WHEN pool='public' AND (booking_id IS NULL OR booking_id=${id}::uuid) THEN 'available' ELSE 'taken' END AS status
+    FROM additional_screening_seats WHERE screening_id=1 ORDER BY row_no,seat_no`;
+  }
   return offer?json(res,200,offer):json(res,404,{error:'NOT_FOUND'});
  }catch(error){
   for(const code of ['TRANSFER_CONSENT_REQUIRED','ACTION_UNAVAILABLE','SEATS_UNAVAILABLE'])if(String(error.message).includes(code))return json(res,409,{error:code});

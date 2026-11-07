@@ -11,7 +11,7 @@
 <section id="guests" hidden><h2>Miejsca gościnne</h2><p>Przypisz gościa do fotela lub pobierz jego kod QR. Przekazanie miejsca do rezerwacji online unieważnia dotychczasową wejściówkę.</p><label>Rząd <select id="guestRow"><option value="">Wszystkie</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label><p id="guestStatus" role="status"></p><table><thead><tr><th>Fotel</th><th>Imię i nazwisko</th><th>Działania</th></tr></thead><tbody id="guestSeats"></tbody></table></section><section id="pools" hidden><h2>Ostatnie miejsca</h2><p>Możesz udostępnić lub wstrzymać niezajęte miejsca z puli rezerwacji online. Miejsca gościnne mają osobne drukowane wejściówki. Zwolnione miejsca obsługuje automatyczna kolejka.</p><div id="poolButtons"></div></section><label>Pokaż pulę: <select id="admissionFilter"><option value="all">Wszystkie zgłoszenia</option><option value="seated">Fotele</option><option value="standing">Bez gwarancji fotela</option><option value="waiting">Lista rezerwowa</option><option value="encore">Pierwszeństwo na kolejne seanse</option></select></label><p id="status" role="status"></p><p id="summary"></p>
 <section id="screenings" hidden>
 <h2>Kolejne seanse</h2>
-<p class="muted">Podgląd roboczych planów sali.</p>
+<p class="muted">Plany sali i rezerwacje dodatkowych pokazów.</p>
 <div id="screeningPlans"></div>
 </section>
 <button id="export" hidden>Eksport CSV</button><button id="refresh" hidden>Odśwież</button>
@@ -21,7 +21,7 @@ let key='',rows=[],guestSeats=[];
 const encoreEligible=r=>r.admission==='interest'||!!r.verified_at&&((r.admission==='waiting'&&['waiting','expired'].includes(r.status))||(r.encore_priority&&['standing','seated'].includes(r.admission)&&['reserved','confirmed','expired'].includes(r.status)));
 const screeningDate=new Intl.DateTimeFormat('pl-PL',{dateStyle:'long',timeStyle:'short',timeZone:'Europe/Warsaw'});
 const screeningPools={organizational:'Organizator',public:'Pula internetowa',held:'Wstrzymane'};
-function showScreeningPlans(screenings,settings){
+function showScreeningPlans(screenings,settings,bookings){
   const section=document.getElementById('screenings');
   const plans=document.getElementById('screeningPlans');
   plans.replaceChildren();
@@ -29,9 +29,10 @@ function showScreeningPlans(screenings,settings){
   for(const screening of screenings){
     const details=document.createElement('details');
     details.dataset.screening=screening.id;
+    details.open=screening.id===1;
     const title=document.createElement('summary');
     const date=screening.starts_at?screeningDate.format(new Date(screening.starts_at)):'termin do ustalenia';
-    title.textContent='Dodatkowy seans '+screening.id+' · '+date;
+    title.textContent=(screening.id===1?'Pokaz przedpremierowy o 18:00':'Dodatkowy seans '+screening.id)+' · '+date;
     details.append(title);
     const config=settings.find(item=>item.id===screening.id);
     if(config){
@@ -91,6 +92,37 @@ function showScreeningPlans(screenings,settings){
       list.append(item);
     }
     details.append(list);
+    const table=document.createElement('table');
+    const head=table.createTHead().insertRow();
+    for(const text of ['Nazwisko','E-mail','Miejsca','Stan zamiany','Wiadomość','Działania']){
+      const cell=document.createElement('th');cell.textContent=text;head.append(cell);
+    }
+    const body=table.createTBody();
+    for(const booking of bookings.filter(b=>b.screening_id===screening.id)){
+      const row=body.insertRow();
+      const state=booking.transferred_at?'Zamiana przyjęta':booking.transfer_source_id?'Oczekuje na zgodę':booking.status;
+      for(const text of [booking.name,booking.email,booking.seat_ids.join(', '),state,booking.transfer_sent_at?'Wysłano propozycję':'']){
+        row.insertCell().textContent=text;
+      }
+      const actions=row.insertCell(),link=document.createElement('a');
+      link.href='/dodatkowy-seans.html?oferta='+booking.id;link.textContent='Otwórz rezerwację';link.target='_blank';link.rel='noopener';actions.append(link);
+    }
+    details.append(table);
+    if(screening.id===1){
+      const dispatch=document.createElement('button');dispatch.textContent='Wyślij propozycje zamiany na 18:00';
+      const note=document.createElement('p');note.setAttribute('role','status');
+      dispatch.onclick=async()=>{
+        if(!confirm('Wysłać wiadomości z pierwszeństwem wyboru miejsc na 18:00?'))return;
+        dispatch.disabled=true;
+        try{
+          const response=await fetch('/api/additional-screening',{method:'POST',
+            headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({action:'dispatch-transfers'})});
+          const result=await response.json();if(!response.ok)throw Error('Nie udało się wysłać propozycji.');
+          note.textContent='Wysłano: '+result.sent+'. Nieudane: '+result.failed+'.';
+        }catch(error){note.textContent=error.message;}finally{dispatch.disabled=false;}
+      };
+      details.append(dispatch,note);
+    }
     plans.append(details);
   }
 }
@@ -110,7 +142,7 @@ async function load(savePassword=false){
       }catch{}
     }
     rows=d.reservations;
-    showScreeningPlans(d.screenings||[],d.screeningSettings||[]);
+    showScreeningPlans(d.screenings||[],d.screeningSettings||[],d.screeningBookings||[]);
     guestSeats=d.seats.filter(s=>s.pool==='organizational');
     document.getElementById('guests').hidden=false;
     renderGuests();

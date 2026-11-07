@@ -14,7 +14,7 @@ main{max-width:640px;margin:6vh auto;padding:24px;border:1px solid #c8a77b}
 <h1>Dodatkowy seans</h1>
 <p id="when"></p>
 <p id="seats"></p>
-<p id="transferInfo" hidden></p>
+<p id="transferInfo" hidden></p><div id="choice" hidden><p id="choiceHint"></p><div id="choiceMap" style="overflow:auto" aria-label="Plan sali na 18:00"></div><button id="reload" type="button">Odśwież miejsca</button></div>
 <label id="consentLabel" hidden><input id="consent" type="checkbox"> Zgadzam się na zamianę całej rezerwacji na 18:00 i anulowanie zgłoszenia na 19:00.</label>
 <p id="status" role="status">Sprawdzam propozycję…</p>
 <button id="accept" hidden>Przyjmuję miejsca</button>
@@ -23,13 +23,30 @@ main{max-width:640px;margin:6vh auto;padding:24px;border:1px solid #c8a77b}
 <script>
 const id=new URLSearchParams(location.search).get('oferta');
 const status=document.getElementById('status'),accept=document.getElementById('accept'),decline=document.getElementById('decline');
-let transferPending=false,transferred=false;
+let transferPending=false,transferred=false,groupSize=0;
+const selected=new Set();
+function updateChoice(){accept.disabled=transferPending&&(!consent.checked||selected.size!==groupSize);}
+function renderChoice(plan){
+ const map=document.getElementById('choiceMap');map.replaceChildren();
+ for(let row=1;row<=7;row++){
+  const line=document.createElement('div');line.style.cssText='display:flex;gap:4px;min-width:560px;margin:8px 0';
+  const label=document.createElement('span');label.textContent='Rząd '+row;label.style.width='60px';line.append(label);
+  for(const seat of plan.filter(seat=>seat.row===row)){
+   const id=seat.row+'-'+seat.number,b=document.createElement('button');b.type='button';b.textContent=seat.number;
+   b.disabled=seat.status!=='available';b.style.cssText='width:32px;padding:6px;margin:0';
+   const refresh=()=>{b.setAttribute('aria-pressed',selected.has(id));b.style.background=selected.has(id)?'#fff':'#c8a77b';};
+   b.onclick=()=>{if(selected.has(id))selected.delete(id);else if(selected.size<groupSize)selected.add(id);refresh();updateChoice();};refresh();
+   line.append(b);
+  }
+  map.append(line);
+ }
+}
 const consent=document.getElementById('consent'),consentLabel=document.getElementById('consentLabel'),transferInfo=document.getElementById('transferInfo');
 const format=new Intl.DateTimeFormat('pl-PL',{dateStyle:'long',timeStyle:'short',timeZone:'Europe/Warsaw'});
 async function load(action){
  accept.disabled=decline.disabled=true;
  try{
-  const response=action?await fetch('/api/additional-screening',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,action})})
+  const response=action?await fetch('/api/additional-screening',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,action,seatIds:[...selected],consent:consent.checked})})
    :await fetch('/api/additional-screening?id='+encodeURIComponent(id));
   if(!response.ok)throw Error(response.status===409?'Zamiana nie jest już dostępna. Nie zmieniliśmy zgłoszenia na 19:00. Odśwież stronę, aby sprawdzić aktualny stan.':response.status===404||response.status===400?'Nie znaleziono propozycji.':'Nie udało się pobrać propozycji. Spróbuj ponownie.');
   const offer=await response.json();
@@ -41,6 +58,8 @@ async function load(action){
   transferred=!!offer.transferred_at;
   transferPending=offer.transfer&&!transferred&&['offered','confirmed'].includes(offer.status)&&Date.now()<Date.parse(offer.starts_at);
   consentLabel.hidden=!transferPending;consent.checked=false;
+  document.getElementById('choice').hidden=!transferPending;
+  if(transferPending){groupSize=offer.groupSize;selected.clear();document.getElementById('choiceHint').textContent='Wybierz '+groupSize+' miejsc na pokaz o 18:00. Ekran jest przed rzędem 1.';renderChoice(offer.plan||[]);}
   transferInfo.hidden=!offer.transfer;
   if(offer.transfer){
    document.querySelector('h1').textContent=transferred?'Twoja wejściówka na 18:00':'Zamień 19:00 na 18:00';
@@ -53,10 +72,11 @@ async function load(action){
   }
   if(!transferPending){accept.textContent='Przyjmuję miejsca';decline.textContent='Anuluj miejsca na 18:00';}
  }catch(error){status.textContent=error.message;}
- finally{accept.disabled=transferPending&&!consent.checked;decline.disabled=false;}
+ finally{updateChoice();decline.disabled=false;}
 }
-consent.onchange=()=>{accept.disabled=transferPending&&!consent.checked;};
-accept.onclick=()=>{if(transferPending&&!consent.checked)return;return load(transferPending?'transfer':'accept');};
+consent.onchange=updateChoice;
+document.getElementById('reload').onclick=()=>load();
+accept.onclick=()=>{if(transferPending&&(!consent.checked||selected.size!==groupSize))return;return load(transferPending?'transfer':'accept');};
 decline.onclick=()=>{if(confirm(transferPending?'Odrzucić miejsca na 18:00 i pozostawić zgłoszenie na 19:00 bez zmian?':transferred?'Anulować miejsca na 18:00? Zgłoszenie na 19:00 nie zostanie przywrócone.':'Zrezygnować z tych miejsc?'))load('decline');};
 const signup=new URLSearchParams(location.search).get('zapis');
 if(signup){
