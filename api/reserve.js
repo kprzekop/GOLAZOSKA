@@ -59,7 +59,21 @@ export default async function handler(req,res){
     WHERE attrelid='premiere_reservations'::regclass AND attname='encore_priority' AND NOT attisdropped) AS ready`;
    if(!schema.ready)await db`ALTER TABLE premiere_reservations ADD COLUMN IF NOT EXISTS encore_priority boolean NOT NULL DEFAULT false`;
   }
-  const [row]=await db`SELECT * FROM premiere_create(${name},${email},${phone},${seatIds}::text[],${seats},${waiting})`;
+  let row;
+  if(body.standingOnly===true){
+   if(!waiting||seatIds.length)return json(res,400,{error:'INVALID_INPUT'});
+   try{
+    const [created]=await db.transaction([
+     db`SELECT * FROM premiere_create(${name},${email},${phone},${seatIds}::text[],${seats},true)`,
+     db`SELECT 1 / CASE WHEN EXISTS(SELECT 1 FROM premiere_reservations WHERE email=${email}
+      AND admission='standing' AND status IN ('verification','reserved','confirmed','offered')) THEN 1 ELSE 0 END`
+    ]);
+    row=created[0];
+   }catch(error){
+    if(String(error.message).includes('division by zero'))return json(res,409,{error:'STANDING_UNAVAILABLE'});
+    throw error;
+   }
+  }else [row]=await db`SELECT * FROM premiere_create(${name},${email},${phone},${seatIds}::text[],${seats},${waiting})`;
   const [details]=await db`SELECT admission FROM premiere_reservations WHERE id=${row.booking_id}::uuid`;
   if(details.admission!=='waiting'){
    const [confirmed]=await db`UPDATE premiere_reservations SET status='confirmed',verified_at=COALESCE(verified_at,now())
