@@ -22,7 +22,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 </head><body><main>
 <a href="/">← Strona filmu</a><p class="eyebrow">Pokaz przedpremierowy · 21 listopada 2026</p>
 <h1>Zobacz „Gołą Zośkę 1812”<br>o godz. 18:00</h1>
-<section aria-label="Wybierz pokaz">
+<section id="showChoice" aria-label="Wybierz pokaz">
 <p>21 listopada 2026 · wybierz dogodną godzinę</p>
 <p><a class="primary-cta" href="/rezerwacje.html?pokaz=18">18:00 — fotel na pokaz przedpremierowy</a></p>
 <p><a class="primary-cta" href="/rezerwacje.html?pokaz=19">19:00 — wejście bez gwarancji fotela</a></p>
@@ -40,6 +40,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 <ol><li>Wybierz od 1 do 2 miejsc i podaj dane.</li><li>Po przydzieleniu wejściówka jest od razu ważna.</li><li id="confirmationRule"></li></ol>
 <p class="muted">Zrezygnować możesz w każdej chwili przez link w e-mailu.</p>
 </section>
+<p id="check18" hidden><a class="primary-cta" href="/rezerwacje.html?pokaz=18">Sprawdź godzinę 18</a></p>
 <p id="availability" aria-live="polite">Sprawdzam dostępność…</p>
 <form id="form" class="hidden">
  <div id="premiereOptions"><h2>1. Wybierz wejście</h2>
@@ -173,6 +174,9 @@ async function load(){
  }
  standingAvailable=d.overflow?.available||0;
  if(standingOnly){
+  document.getElementById('showChoice').hidden=true;
+  document.getElementById('rules').hidden=true;
+  document.getElementById('check18').hidden=false;
   document.querySelector('h1').textContent='Premiera o 19:00 — wejście bez fotela';
   document.querySelector('.eyebrow').textContent='Premiera · 21 listopada 2026 · godz. 19:00';
   document.querySelector('[aria-labelledby="additional-screenings"]').hidden=true;
