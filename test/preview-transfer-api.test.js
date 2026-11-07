@@ -46,7 +46,7 @@ test('organizer trial sends only five selected printed tickets to their contact,
   await db.exec("UPDATE additional_screenings SET starts_at=now()+interval '7 days' WHERE id=1");
   const {randomUUID}=await import('node:crypto');
   const ids=Array.from({length:5},()=>randomUUID());
-  for(const id of ids)await db.query("INSERT INTO premiere_reservations(id,name,email,phone,seats,status,admission,verified_at) VALUES($1,'Organizer','druk-'||$1::text||'@example.invalid','000000000',1,'confirmed','standing',now())",[id]);
+  for(const id of ids)await db.query("INSERT INTO premiere_reservations(id,name,email,phone,seats,status,admission,verified_at) VALUES($1::uuid,'Organizer','druk-'||$1::text||'@example.invalid','000000000',1,'confirmed','standing',now())",[id]);
   await db.exec("INSERT INTO premiere_reservations(name,email,phone,seats,status,admission,verified_at) VALUES('Other','other@example.test','600123456',1,'confirmed','standing',now())");
   process.env.STANDING_GUEST_PRINT_IDS=JSON.stringify(ids.slice(0,3));
   process.env.STANDING_GUEST_PRINT_EXTRA_IDS=JSON.stringify(ids.slice(3));
