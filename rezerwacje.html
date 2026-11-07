@@ -22,7 +22,12 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 </head><body><main>
 <a href="/">← Strona filmu</a><p class="eyebrow">Pokaz przedpremierowy · 21 listopada 2026</p>
 <h1>Zobacz „Gołą Zośkę 1812”<br>o godz. 18:00</h1>
-<p class="sold-out"><strong>Wejściówki na premierę o 19:00 zostały wyczerpane.</strong> Są jeszcze miejsca na pokaz przedpremierowy o 18:00.</p>
+<section aria-label="Wybierz pokaz">
+<p>21 listopada 2026 · wybierz dogodną godzinę</p>
+<p><a class="primary-cta" href="/rezerwacje.html?pokaz=18">18:00 — fotel na pokaz przedpremierowy</a></p>
+<p><a class="primary-cta" href="/rezerwacje.html?pokaz=19">19:00 — wejście bez gwarancji fotela</a></p>
+<p class="muted">Na 19:00 dostępna jest pula 20 wejść bez fotela. Po pokazie o 18:00 zapraszamy na krótkie spotkanie z twórcami.</p>
+</section>
 <p><strong>Wstęp bezpłatny.</strong> Sala widowiskowa MDK, Rynek Zygmunta Augusta 9.<br>Wejście od ul. Kościelnej, II piętro.</p>
 <section aria-labelledby="additional-screenings">
 <h2 id="additional-screenings">Ten sam film. Wcześniejszy seans.</h2>
@@ -73,7 +78,8 @@ const form=document.getElementById('form'),message=document.getElementById('mess
 const selected=new Set(),waiting=document.getElementById('waiting'),map=document.getElementById('seatmap');
 let seatData=[],widget,standingAvailable=0;
 // All public entry links now lead to the 18:00 preview screening.
-const interestMode=true;
+const interestMode=new URLSearchParams(location.search).get('pokaz')!=='19';
+const standingOnly=!interestMode;
 function updateRules(){
  document.getElementById('confirmationRule').textContent='Sprawdź e-mail z wejściówką.';
  document.getElementById('verificationRule').textContent='Przydzieloną wejściówkę otrzymasz e-mailem.';
@@ -86,6 +92,13 @@ function updateVariant(){
  document.getElementById('overflowAvailability').textContent=isStanding?'Wejście na pokaz bez gwarancji fotela. Jeśli zwolnią się miejsca siedzące, wyślemy propozycję.':'Lista rezerwowa nie uprawnia do wejścia. Przyjdź dopiero po otrzymaniu i przyjęciu propozycji. Całą grupę zapisujemy razem.';
  document.getElementById('consentText').textContent=isStanding?'Rozumiem, że mogę uczestniczyć na stojąco.':'Rozumiem, że zapis na listę rezerwową nie gwarantuje wejścia.';
  document.getElementById('submit').textContent=waiting.checked?(isStanding?'Zarezerwuj wejście na stojąco':'Zapisz na listę rezerwową'):'Zarezerwuj miejsca';
+ if(standingOnly){
+  document.getElementById('encoreChoice').classList.add('hidden');
+  document.getElementById('encorePriority').disabled=true;
+  document.getElementById('alternativeLabel').textContent='Wybieram wejście na 19:00 bez gwarancji fotela';
+  document.getElementById('overflowAvailability').textContent='Wejście na premierę o 19:00. Udział może odbyć się na stojąco.';
+  document.getElementById('submit').textContent='Zarezerwuj wejście bez fotela na 19:00';
+ }
  document.getElementById('standingConsent').required=waiting.checked;
 }
 function setWaiting(){
@@ -159,6 +172,27 @@ async function load(){
   return;
  }
  standingAvailable=d.overflow?.available||0;
+ if(standingOnly){
+  document.querySelector('h1').textContent='Premiera o 19:00 — wejście bez fotela';
+  document.querySelector('.eyebrow').textContent='Premiera · 21 listopada 2026 · godz. 19:00';
+  document.querySelector('[aria-labelledby="additional-screenings"]').hidden=true;
+  document.getElementById('interestLink').textContent='Zarezerwuj wejście na 19:00 ↓';
+  document.getElementById('interestLink').href='#form';
+  document.getElementById('seatedChoice').classList.add('hidden');
+  document.getElementById('alternative').classList.add('hidden');
+  document.getElementById('alternativeChoice').classList.remove('hidden');
+  document.getElementById('encoreChoice').classList.add('hidden');
+  document.getElementById('reload').hidden=true;
+  waiting.checked=true;waiting.disabled=true;setWaiting();
+  document.getElementById('seats').querySelectorAll('option').forEach(option=>option.disabled=Number(option.value)>standingAvailable);
+  const count=document.getElementById('seats');
+  if(Number(count.value)>standingAvailable&&standingAvailable>0)count.value='1';
+  updateVariant();
+  form.classList.toggle('hidden',standingAvailable<1);
+  availability.textContent=standingAvailable>0?'Wolne wejścia bez fotela na 19:00: '+standingAvailable+' z puli 20.':'Pula 20 wejść bez fotela jest zajęta. Możesz wybrać pokaz o 18:00.';
+  showChallenge(d.siteKey);
+  return;
+ }
  seatData=d.seats;
  for(const id of selected)if(!seatData.some(s=>s.id===id&&s.status==='available'))selected.delete(id);
  const hasSeats=seatData.some(s=>s.status==='available');
@@ -188,9 +222,10 @@ form.addEventListener('submit',async e=>{
  const button=document.getElementById('submit');button.disabled=true;
  try{
   const body={...Object.fromEntries(new FormData(form)),seatIds:[...selected],waiting:waiting.checked,encorePriority:!document.getElementById('encorePriority').disabled&&document.getElementById('encorePriority').checked,acceptStanding:document.getElementById('standingConsent').checked};
+  if(standingOnly)Object.assign(body,{standingOnly:true,waiting:true,seatIds:[]});
   if(interestMode)Object.assign(body,{screeningInterest:true,seats:document.getElementById('interestSeats').value});
   const r=await fetch('/api/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();
-  const errors={DUPLICATE:'Ten e-mail ma już aktywne zgłoszenie. Sprawdź skrzynkę.',SEATS_UNAVAILABLE:'Ktoś właśnie zarezerwował wybrane miejsca. Wybierz inne na odświeżonym planie.',CHALLENGE:'Potwierdź zabezpieczenie formularza.',INVALID_INPUT:'Sprawdź dane i zgodność obu numerów telefonu.',MAIL_UNAVAILABLE:'Nie udało się wysłać wiadomości. Zgłoszenie zostało anulowane; spróbuj ponownie.'};
+  const errors={STANDING_UNAVAILABLE:'Wybrana liczba wejść bez fotela na 19:00 jest już niedostępna. Odśwież stronę lub wybierz pokaz o 18:00.',DUPLICATE:'Ten e-mail ma już aktywne zgłoszenie. Sprawdź skrzynkę.',SEATS_UNAVAILABLE:'Ktoś właśnie zarezerwował wybrane miejsca. Wybierz inne na odświeżonym planie.',CHALLENGE:'Potwierdź zabezpieczenie formularza.',INVALID_INPUT:'Sprawdź dane i zgodność obu numerów telefonu.',MAIL_UNAVAILABLE:'Nie udało się wysłać wiadomości. Zgłoszenie zostało anulowane; spróbuj ponownie.'};
   if(!r.ok){if(d.error==='SEATS_UNAVAILABLE')await load();throw Error(errors[d.error]||'Nie udało się przyjąć zgłoszenia. Spróbuj później.');}
   form.classList.add('hidden');availability.textContent='';
   if(d.admission==='interest'){message.textContent='Zapis przyjęty. Po przydzieleniu miejsc otrzymasz wejściówkę e-mailem.';return;}
