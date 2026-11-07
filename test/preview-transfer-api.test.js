@@ -62,3 +62,20 @@ test('organizer trial sends only five selected printed tickets to their contact,
   await db.close();
  }
 });
+
+test('standing dispatch excludes waiting list and printed organizer tickets, and does not repeat sent proposals',async()=>{
+ db=new PGlite();mails=[];fail=false;
+ try{
+  for(const file of ['schema.sql','migrate-admissions.sql','migrate-tickets.sql'])await db.exec(await readFile(new URL('../db/'+file,import.meta.url),'utf8'));
+  await initializePreviewScreening(tag);
+  await db.exec("UPDATE additional_screenings SET starts_at=now()+interval '7 days' WHERE id=1");
+  await db.exec("INSERT INTO premiere_reservations(name,email,phone,seats,status,admission,verified_at) VALUES ('Standing','standing@example.test','600123456',2,'confirmed','standing',now()),('Waiting','waiting@example.test','600123457',1,'waiting','waiting',now()),('Printed','print@example.invalid','000000000',1,'confirmed','standing',now())");
+  await db.exec("SELECT additional_screening_offer(1);SELECT additional_screening_offer(1)");
+  const {sendStandingTransferBatch}=await import('../lib/standing-transfer-dispatch.js');
+  const result=await sendStandingTransferBatch(tag);
+  assert.equal(result.sent,1);assert.equal(result.failed,0);assert.equal(result.eligible,1);assert.equal(result.totalSent,1);assert.equal(result.withoutOffer,0);
+  assert.equal(mails.length,1);assert.equal(mails[0][0],'standing@example.test');
+  assert.equal((await sendStandingTransferBatch(tag)).sent,0);assert.equal(mails.length,1);
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM premiere_reservations WHERE status IN ('confirmed','waiting')")).rows[0].n,3);
+ }finally{await db.close();}
+});
