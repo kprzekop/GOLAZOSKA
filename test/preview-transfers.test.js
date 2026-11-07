@@ -91,3 +91,18 @@ test('seat choice: unavailable selection leaves 19:00 intact, successful swap re
   assert.deepEqual((await db.query('SELECT row_no,seat_no FROM additional_screening_seats WHERE booking_id=$1 ORDER BY row_no,seat_no',[id])).rows,seats.rows);
  }finally{await db.close();}
 });
+
+test('direct viewer reservation at 18:00 keeps its seats and confirmed status',async()=>{
+ const db=await setup();try{
+  const r=await guest(db);
+  const interest=await first(db,"INSERT INTO additional_screening_interest(name,email,phone,seats,verified_at) VALUES('Direct','viewer@example.test','600123456',2,now()) RETURNING id");
+  const booking=await first(db,"INSERT INTO additional_screening_bookings(screening_id,source_id,name,email,status,expires_at) VALUES(1,$1,'Direct','viewer@example.test','confirmed',now()+interval '2 days') RETURNING id",[interest.id]);
+  await db.query("UPDATE additional_screening_seats SET booking_id=$1 WHERE screening_id=1 AND row_no=7 AND seat_no IN (7,8)",[booking.id]);
+  await db.exec(migration);
+  await db.exec(await readFile(new URL('../db/migrate-preview-seat-choice.sql',import.meta.url),'utf8'));
+  const current=await first(db,'SELECT status,transfer_source_id FROM additional_screening_bookings WHERE id=$1',[booking.id]);
+  assert.equal(current.status,'confirmed');assert.equal(current.transfer_source_id,null);
+  assert.equal((await first(db,'SELECT count(*)::int AS n FROM additional_screening_seats WHERE booking_id=$1',[booking.id])).n,2);
+  assert.equal((await first(db,'SELECT status FROM premiere_reservations WHERE id=$1',[r.id])).status,'confirmed');
+ }finally{await db.close();}
+});
