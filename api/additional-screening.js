@@ -10,7 +10,13 @@ export default async function handler(req,res){
    const seats=await db`SELECT row_no AS row,seat_no AS number,
     CASE WHEN booking_id IS NOT NULL THEN 'taken' WHEN pool='public' THEN 'available' ELSE pool END AS status
     FROM additional_screening_seats WHERE screening_id=1 ORDER BY row_no,seat_no`;
-   return json(res,200,{seats});
+   const [summary]=await db`SELECT
+    (SELECT count(*)::int FROM additional_screening_seats WHERE screening_id=1) AS total,
+    (SELECT count(*)::int FROM additional_screening_seats s JOIN additional_screening_bookings b ON b.id=s.booking_id
+     WHERE s.screening_id=1 AND b.status='confirmed' AND (b.transfer_source_id IS NULL OR b.transferred_at IS NOT NULL)) AS reserved,
+    (SELECT count(*)::int FROM additional_screening_seats WHERE screening_id=1 AND pool='public' AND booking_id IS NULL) AS available,
+    (SELECT released_seats FROM preview_unaccepted_holds_released_v3 WHERE id=1) AS released_unaccepted`;
+   return json(res,200,{seats,summary});
   }catch{return json(res,503,{error:'UNAVAILABLE'});}
  }
  if(req.method==='POST'&&req.body?.action==='dispatch-transfers'){
