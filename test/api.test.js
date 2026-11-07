@@ -184,3 +184,25 @@ test('publiczny formularz przydziela pulę 20 po zgodzie, a kolejne zgłoszenia 
   assert.match(mails.at(-1)[2],/nie uprawnia do wejścia/);
  }finally{globalThis.fetch=oldFetch;await db.close();mock.timers.reset();}
 });
+
+test('explicit standing choice: full pool rolls back signup instead of adding a waiting reservation',async()=>{
+ mock.timers.enable({apis:['Date'],now:new Date('2026-11-07T12:00:00+01:00')});
+ db=new PGlite();await db.exec(schema.replaceAll('now()',"'2026-11-07 12:00+01'::timestamptz"));
+ const previousFetch=globalThis.fetch;
+ Object.assign(process.env,{DATABASE_URL:'postgres://unused',RESEND_API_KEY:'test',MAIL_FROM:'test@example.com',
+ TURNSTILE_SITE_KEY:'test',TURNSTILE_SECRET_KEY:'test',TURNSTILE_HOSTNAME:'www.golazoska.com',RESERVATIONS_OPEN:'true'});
+ globalThis.fetch=async()=>({json:async()=>({success:true,hostname:'www.golazoska.com'})});
+ try{
+  await call(status);
+  await db.exec("INSERT INTO premiere_reservations(name,email,phone,seats,status,admission,verified_at,upgrade_declined_at) SELECT 'Existing','standing-'||n||'@example.test','600123456',2,'confirmed','standing',now(),now() FROM generate_series(1,10) n");
+  const body={...data,email:'explicit@example.test',waiting:true,seatIds:[],seats:1,acceptStanding:true,standingOnly:true};
+  const full=await call(reserve,'POST',body);
+  assert.equal(full.code,409);assert.equal(full.body.error,'STANDING_UNAVAILABLE');
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM premiere_reservations WHERE email='explicit@example.test'")).rows[0].n,0);
+  await db.exec("UPDATE premiere_reservations SET seats=1 WHERE email='standing-1@example.test'");
+  assert.equal((await call(reserve,'POST',{...body,seats:2})).body.error,'STANDING_UNAVAILABLE');
+  const last=await call(reserve,'POST',body);
+  assert.equal(last.code,200);assert.equal(last.body.admission,'standing');assert.equal(last.body.status,'confirmed');
+  assert.equal((await db.query('SELECT premiere_standing_used() AS n')).rows[0].n,20);
+ }finally{globalThis.fetch=previousFetch;await db.close();mock.timers.reset();}
+});
