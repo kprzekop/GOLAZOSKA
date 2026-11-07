@@ -24,12 +24,12 @@ test('API, migration and durable emails: one proposal, no GET side effect, atomi
   assert.equal((await call('POST',{action:'dispatch-transfers',dryRun:true},{},'Bearer dispatch-test')).body.eligible_bookings,1);
   const sent=await call('POST',{action:'dispatch-transfers'},{},'Bearer dispatch-test');
   assert.equal(sent.code,200);assert.equal(sent.body.transfers.sent,1);
-  assert.equal(mails.length,1);assert.match(mails[0][2],/Dopiero po wybraniu/);assert.match(mails[0][4],/^preview-transfer-offer\//);
+  assert.equal(mails.length,1);assert.match(mails[0][2],/Dopiero po wybraniu/);assert.match(mails[0][4],/^preview-seat-choice-v2\//);
   await call('POST',{action:'dispatch-transfers'},{},'Bearer dispatch-test');assert.equal(mails.length,1);
   const {id}=(await db.query('SELECT id FROM additional_screening_bookings')).rows[0];
   const get=await call('GET',{}, {id});assert.equal(get.body.transfer,true);assert.equal(get.body.status,'offered');
   assert.equal((await call('POST',{id,action:'accept'})).code,409);
-  fail=true;const swapped=await call('POST',{id,action:'transfer'});
+  fail=true;const swapped=await call('POST',{id,action:'transfer',consent:true,seatIds:['7-7','7-8']});
   assert.equal(swapped.code,200);assert.equal(swapped.body.status,'confirmed');assert.ok(swapped.body.transferred_at);
   assert.equal((await db.query('SELECT status FROM premiere_reservations')).rows[0].status,'cancelled');
   fail=false;await sendAdditionalScreeningOffers(tag,{previewOnly:true});
