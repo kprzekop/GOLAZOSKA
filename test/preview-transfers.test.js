@@ -106,3 +106,31 @@ test('direct viewer reservation at 18:00 keeps its seats and confirmed status',a
   assert.equal((await first(db,'SELECT status FROM premiere_reservations WHERE id=$1',[r.id])).status,'confirmed');
  }finally{await db.close();}
 });
+
+test('release pending holds, preserve direct and accepted tickets, and allocate new proposals only on choice',async()=>{
+ const db=await setup();try{
+  const pending=await guest(db,{email:'pending-release@example.test'});
+  await db.exec(migration);
+  await db.exec(await readFile(new URL('../db/migrate-preview-seat-choice.sql',import.meta.url),'utf8'));
+  const pendingId=await offer(db);
+  const accepted=await guest(db,{email:'accepted-release@example.test'});
+  const acceptedId=await offer(db);
+  await reply(db,acceptedId,'transfer');
+  await db.exec("INSERT INTO additional_screening_interest(name,email,phone,seats,verified_at) VALUES('Direct','direct-release@example.test','600123456',1,now())");
+  const directId=await offer(db);
+  const release=await readFile(new URL('../db/migrate-preview-release-holds.sql',import.meta.url),'utf8');
+  await db.exec(release);await db.exec(release);
+  assert.equal((await first(db,'SELECT released_seats FROM preview_unaccepted_holds_released_v3 WHERE id=1')).released_seats,2);
+  const allocated=async id=>(await first(db,'SELECT count(*)::int AS n FROM additional_screening_seats WHERE booking_id=$1',[id])).n;
+  assert.equal(await allocated(pendingId),0);
+  assert.equal(await allocated(acceptedId),2);
+  assert.equal(await allocated(directId),1);
+  assert.equal((await first(db,'SELECT status FROM premiere_reservations WHERE id=$1',[pending.id])).status,'confirmed');
+  const newcomer=await guest(db,{email:'new-release@example.test'});
+  const newcomerId=await offer(db);
+  assert.equal(await allocated(newcomerId),0);
+  assert.equal((await first(db,"SELECT preview_choose_and_transfer($1,ARRAY['7-7','7-8']) AS status",[newcomerId])).status,'confirmed');
+  assert.equal(await allocated(newcomerId),2);
+  assert.equal((await first(db,'SELECT status FROM premiere_reservations WHERE id=$1',[newcomer.id])).status,'cancelled');
+ }finally{await db.close();}
+});
