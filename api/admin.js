@@ -1,4 +1,4 @@
-import {additionalScreeningsReady} from '../lib/additional-screenings.js';
+import {additionalScreeningsReady,initializePreviewScreening} from '../lib/additional-screenings.js';
 import {deliverTickets,qrPng} from '../lib/tickets.js';
 import {advanceQueue} from '../lib/queue.js';
 import {applySeatPolicy} from '../lib/seat-policy.js';
@@ -8,7 +8,7 @@ export default async function handler(req,res){
  if(!isAdmin(req))return json(res,401,{error:'UNAUTHORIZED'});
  if(!['GET','POST'].includes(req.method))return json(res,405,{error:'METHOD'});
  try{
-  const db=sql();await applySeatPolicy(db);await db`SELECT premiere_expire()`;
+  const db=sql();await applySeatPolicy(db);await initializePreviewScreening(db);await db`SELECT premiere_expire()`;
   if(req.method==='POST'){
    const {id,action,pool}=req.body||{};
    if(['guest_assign','guest_release','guest_qr'].includes(action)){
@@ -76,7 +76,7 @@ export default async function handler(req,res){
    FROM premiere_seats s LEFT JOIN premiere_organizational_tickets t ON t.seat_id=s.id ORDER BY s.row_no,s.seat_no`;
   const [layouts]=await db`SELECT to_regclass('public.additional_screening_seats') IS NOT NULL AS ready`;
   const screenings=layouts.ready?await db`SELECT s.id,s.starts_at,
-   COALESCE(jsonb_agg(jsonb_build_object('row_no',p.row_no,'seat_no',p.seat_no,'pool',p.pool)
+   COALESCE(jsonb_agg(jsonb_build_object('row_no',p.row_no,'seat_no',p.seat_no,'pool',p.pool,'booking_id',p.booking_id)
     ORDER BY p.row_no,p.seat_no) FILTER (WHERE p.seat_no IS NOT NULL),'[]'::jsonb) AS seats
    FROM additional_screenings s LEFT JOIN additional_screening_seats p ON p.screening_id=s.id
    GROUP BY s.id ORDER BY s.id`:[];
@@ -86,7 +86,12 @@ export default async function handler(req,res){
    (SELECT count(*)::int FROM additional_screening_bookings b WHERE b.screening_id=s.id AND b.status='confirmed') AS confirmed,
    (SELECT count(*)::int FROM additional_screening_bookings b WHERE b.screening_id=s.id AND b.status='offered' AND b.expires_at>now()) AS offered
    FROM additional_screenings s`:[];
-  return json(res,200,{config:cfg,reservations,seats,screenings,screeningSettings});
+  const screeningBookings=invitationsReady?await db`SELECT b.id,b.screening_id,b.name,b.email,b.status,b.expires_at,
+   b.transfer_sent_at,b.transferred_at,b.transfer_source_id,
+   ARRAY(SELECT p.row_no||'-'||p.seat_no FROM additional_screening_seats p WHERE p.booking_id=b.id ORDER BY p.row_no,p.seat_no) AS seat_ids
+   FROM additional_screening_bookings b ORDER BY b.screening_id,b.name,b.id`:[];
+  const moved=new Set(screeningBookings.filter(b=>b.transferred_at).map(b=>b.transfer_source_id));
+  return json(res,200,{config:cfg,reservations:reservations.filter(r=>!moved.has(r.id)),seats,screenings,screeningSettings,screeningBookings});
  }catch(e){
   if(['NO_CAPACITY','ACTION_UNAVAILABLE'].some(code=>String(e.message).includes(code)))return json(res,409,{error:'ACTION_UNAVAILABLE'});
   return json(res,503,{error:'UNAVAILABLE'});
