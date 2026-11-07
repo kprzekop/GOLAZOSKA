@@ -67,7 +67,7 @@ async function load(action){
    if(transferPending){
     accept.hidden=false;accept.textContent='Zamieniam na 18:00';
     decline.textContent='Nie zamieniam — zostaję przy 19:00';
-    status.textContent=offer.status==='offered'?'Te fotele czekają na Twoją decyzję do '+format.format(new Date(offer.expires_at))+'.':'Masz już ważne miejsca na 18:00. Potwierdź, czy zwolnić Twoje zgłoszenie na 19:00.';
+    status.textContent=offer.status==='offered'?'Wybierz dostępne fotele i zatwierdź zamianę do '+format.format(new Date(offer.expires_at))+'.':'Masz już ważne miejsca na 18:00. Potwierdź, czy zwolnić Twoje zgłoszenie na 19:00.';
    }else if(transferred&&offer.status==='confirmed')status.textContent='Zamiana potwierdzona. To Twoja ważna wejściówka na 18:00 — pokaż ją przy wejściu. Potwierdzenie wyślemy również e-mailem.';
   }
   if(!transferPending){accept.textContent='Przyjmuję miejsca';decline.textContent='Anuluj miejsca na 18:00';}
