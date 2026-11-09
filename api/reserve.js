@@ -1,3 +1,4 @@
+import {prepareSelectedPreview,deliverSelectedPreview} from '../lib/preview-selected-seats.js';
 import {deliverTickets,ticketUrl} from '../lib/tickets.js';
 import {advanceQueue} from '../lib/queue.js';
 import {applySeatPolicy} from '../lib/seat-policy.js';
@@ -12,7 +13,7 @@ export default async function handler(req,res){
  return json(res,503,{error:'UNAVAILABLE'});
  if(body.website)return json(res,400,{error:'INVALID_INPUT'});
  let input;
- try{input=validateBooking(interest?{...body,waiting:true,seatIds:[]}:body);if(!interest&&input.waiting&&body.acceptStanding!==true)throw Error('INVALID_INPUT');}catch{return json(res,400,{error:'INVALID_INPUT'});}
+ try{input=validateBooking(interest?{...body,waiting:false}:body);if(!interest&&input.waiting&&body.acceptStanding!==true)throw Error('INVALID_INPUT');}catch{return json(res,400,{error:'INVALID_INPUT'});}
  try{
   const challenge=String(body['cf-turnstile-response']||'');
   if(!challenge||challenge.length>2048)return json(res,400,{error:'CHALLENGE'});
@@ -24,32 +25,10 @@ export default async function handler(req,res){
    return json(res,400,{error:'CHALLENGE'});
   const {name,email,phone,seatIds,seats,waiting}=input,db=sql();
   if(interest){
-   const [schema]=await db`SELECT to_regclass('public.additional_screening_interest') IS NOT NULL AS ready`;
-   if(!schema.ready)await db.transaction([
-    db`SELECT pg_advisory_xact_lock(851191,2)`,
-    db`CREATE TABLE IF NOT EXISTS additional_screening_interest (
- id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
- name text NOT NULL,
- email text NOT NULL UNIQUE,
- phone text NOT NULL,
- seats integer NOT NULL CHECK (seats BETWEEN 1 AND 2),
- created_at timestamptz NOT NULL DEFAULT now(),
- verified_at timestamptz
-)`
-   ]);
-   const [entry]=await db`INSERT INTO additional_screening_interest(name,email,phone,seats,verified_at)
-    VALUES(${name},${email},${phone},${seats},now())
-    ON CONFLICT(email) DO UPDATE SET id=gen_random_uuid(),name=excluded.name,phone=excluded.phone,
-     seats=excluded.seats,created_at=now(),verified_at=now()
-    WHERE additional_screening_interest.verified_at IS NULL
-
-    RETURNING id`;
-   if(!entry)return json(res,409,{error:'DUPLICATE'});
-   try{
-    await sendMail(email,'Przyjęliśmy zapis na pokaz o 18:00 – Goła Zośka 1812',
-     '<p>Dzień dobry, '+escapeHtml(name)+'.</p><p>Przyjęliśmy zapis na pokaz przedpremierowy 21 listopada o 18:00. Jeśli przydzielimy miejsca, wyślemy wejściówkę e-mailem.</p>');
-   }catch{console.error('Screening signup receipt failed');}
-   return json(res,200,{admission:'interest'});
+   await prepareSelectedPreview(db);
+   const [booking]=await db`SELECT preview_reserve_selected(${name},${email},${phone},${seatIds}::text[]) AS id`;
+   await deliverSelectedPreview(db,booking.id);
+   return json(res,200,{status:'confirmed',admission:'seated',ticketUrl:'/dodatkowy-seans.html?oferta='+booking.id});
   }
   await applySeatPolicy(db);
   await advanceQueue(db);
