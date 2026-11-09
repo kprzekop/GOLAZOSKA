@@ -2,7 +2,7 @@ import {prepareSelectedPreview,deliverSelectedPreview} from '../lib/preview-sele
 import {deliverTickets,ticketUrl} from '../lib/tickets.js';
 import {advanceQueue} from '../lib/queue.js';
 import {applySeatPolicy} from '../lib/seat-policy.js';
-import {escapeHtml,json,sql,sendMail,actionMail} from '../lib/shared.js';
+import {json,sql,sendMail,actionMail} from '../lib/shared.js';
 import {validateBooking,isReservationPeriod} from '../lib/event.js';
 export default async function handler(req,res){
  if(req.method==='GET'&&req.query?.interest==='true')return json(res,200,{siteKey:process.env.TURNSTILE_SITE_KEY});
