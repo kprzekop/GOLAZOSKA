@@ -125,19 +125,20 @@ test('nowy formularz kieruje na 18:00 i nie wymaga zgody na stanie o 19:00',asyn
  let posted=null;
  const dom=new JSDOM(html,{url:'https://www.golazoska.com/rezerwacje.html',runScripts:'dangerously',beforeParse(w){
   w.fetch=async(url,options)=>{
-   if(!options)return {ok:true,json:async()=>({siteKey:'test',seats:[]})};
-   posted=JSON.parse(options.body);return {ok:true,json:async()=>({admission:'interest'})};
+   if(!options)return {ok:true,json:async()=>({siteKey:'test',seats:[{row:1,number:1,status:'available'}]})};
+   posted=JSON.parse(options.body);return {ok:true,json:async()=>({admission:'seated',ticketUrl:'/dodatkowy-seans.html?oferta=test'})};
   };
  }});
  try{
   await new Promise(r=>setTimeout(r,30));const d=dom.window.document;
   assert.equal(d.getElementById('waiting').checked,false);
   assert.equal(d.getElementById('standingConsent').required,false);
+  d.querySelector('#previewMap button').click();
   d.getElementById('phone').value=d.getElementById('phoneRepeat').value='600123456';
   d.getElementById('form').dispatchEvent(new dom.window.Event('submit',{cancelable:true}));
   await new Promise(r=>setTimeout(r,30));
   assert.equal(posted.screeningInterest,true);assert.equal(posted.acceptStanding,false);
-  assert.match(d.getElementById('message').textContent,/Po przydzieleniu miejsc/);
+  assert.match(d.getElementById('message').textContent,/Rezerwacja gotowa/);
  }finally{dom.window.close();}
 });
 
