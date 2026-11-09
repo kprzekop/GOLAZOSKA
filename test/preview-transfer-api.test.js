@@ -79,3 +79,27 @@ test('standing dispatch excludes waiting list and printed organizer tickets, and
   assert.equal((await db.query("SELECT count(*)::int AS n FROM premiere_reservations WHERE status IN ('confirmed','waiting')")).rows[0].n,3);
  }finally{await db.close();}
 });
+
+test('direct 18:00 booking reserves exactly selected seats and rejects competing requests',async()=>{
+ db=new PGlite();mails=[];fail=false;
+ const previousFetch=globalThis.fetch;
+ try{
+  for(const file of ['schema.sql','migrate-admissions.sql','migrate-tickets.sql'])await db.exec(await readFile(new URL('../db/'+file,import.meta.url),'utf8'));
+  Object.assign(process.env,{DATABASE_URL:'unused',RESEND_API_KEY:'test',MAIL_FROM:'test@example.test',TURNSTILE_SECRET_KEY:'test',TURNSTILE_HOSTNAME:'www.golazoska.com'});
+  globalThis.fetch=async()=>({json:async()=>({success:true,hostname:'www.golazoska.com'})});
+  const {default:reserve}=await import('../api/reserve.js');
+  const request=async body=>reserve({method:'POST',body,headers:{}},{setHeader(){},status(code){this.code=code;return this;},json(body){return {code:this.code,body};}});
+  const data={name:'Selected Viewer',email:'selected@example.test',phone:'600123456',phoneRepeat:'600123456',
+   screeningInterest:true,seatIds:['7-7','7-8'],'cf-turnstile-response':'test'};
+  const result=await request(data);
+  assert.equal(result.code,200);assert.equal(result.body.status,'confirmed');
+  assert.match(result.body.ticketUrl,/dodatkowy-seans/);
+  const places=await db.query("SELECT row_no,seat_no FROM additional_screening_seats WHERE booking_id IS NOT NULL ORDER BY row_no,seat_no");
+  assert.deepEqual(places.rows,[{row_no:7,seat_no:7},{row_no:7,seat_no:8}]);
+  assert.equal(mails.length,1);assert.match(mails[0][2],/rząd 7, miejsce 7/);
+  assert.equal((await request({...data,email:'competing@example.test'})).body.error,'SEATS_UNAVAILABLE');
+  assert.equal((await request({...data,seatIds:['1-1']})).body.error,'DUPLICATE');
+  assert.equal((await request({...data,email:'empty@example.test',seatIds:[]})).code,400);
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM additional_screening_bookings")).rows[0].n,1);
+ }finally{globalThis.fetch=previousFetch;await db.close();}
+});
