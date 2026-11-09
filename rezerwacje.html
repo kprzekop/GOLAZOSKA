@@ -32,7 +32,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 <section aria-labelledby="additional-screenings">
 <h2 id="additional-screenings">Ten sam film. Wcześniejszy seans.</h2>
 <p>21 listopada 2026 o godz. 18:00 odbędzie się pokaz przedpremierowy. Po seansie zapraszamy na krótkie spotkanie z twórcami.</p>
-<p>Podaj liczbę osób i dane kontaktowe. Po przydzieleniu wolnych foteli otrzymasz ważną wejściówkę e-mailem.</p>
+<p>Wybierz fotele na planie i podaj dane kontaktowe. Po rezerwacji otrzymasz ważną wejściówkę e-mailem.</p>
 </section>
 <p><a class="primary-cta" href="#form" id="interestLink">Zarezerwuj na 18:00 ↓</a></p>
 <section id="rules" aria-label="Jak zarezerwować">
@@ -61,7 +61,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
  <label class="inline"><input id="standingConsent" type="checkbox"><span id="consentText"></span></label>
  </div></div>
  </div>
- <div id="interestOptions" class="hidden"><h2>1. Wybierz liczbę osób</h2><p class="muted">Podgląd sali. Wolne fotele przydzieli system — nie wybierasz ich na planie.</p><div class="screen">EKRAN · POKAZ O 18:00</div><div id="previewMap" class="seatmap" aria-label="Plan sali na 18:00"></div><label for="interestSeats">Liczba osób</label><select id="interestSeats"><option>1</option><option>2</option></select></div>
+ <div id="interestOptions" class="hidden"><h2>1. Wybierz miejsca</h2><p>Wybierz od 1 do 2 zielonych foteli na planie sali. Rząd 1 jest najbliżej ekranu.</p><div class="screen">EKRAN · POKAZ O 18:00</div><div id="previewMap" class="seatmap" aria-label="Plan sali na 18:00"></div><p id="previewSelected" aria-live="polite">Nie wybrano miejsc.</p><button id="previewReload" type="button">Odśwież plan sali</button></div>
  <h2 id="contactHeading">2. Podaj dane</h2>
  <label for="name">Imię i nazwisko</label><input id="name" name="name" maxlength="120" minlength="2" required autocomplete="name">
  <label for="email">Adres e-mail</label><input id="email" name="email" type="email" maxlength="254" required autocomplete="email">
@@ -81,6 +81,31 @@ let seatData=[],widget,standingAvailable=0;
 // All public entry links now lead to the 18:00 preview screening.
 const interestMode=new URLSearchParams(location.search).get('pokaz')!=='19';
 const standingOnly=!interestMode;
+function renderPreview(seats){
+ const map=document.getElementById('previewMap');map.replaceChildren();
+ for(const id of selected)if(!seats.some(seat=>seat.row+'-'+seat.number===id&&seat.status==='available'))selected.delete(id);
+ for(let row=1;row<=7;row++){
+  const line=document.createElement('div');line.className='row';
+  const label=document.createElement('span');label.className='row-label';label.textContent='Rząd '+row;line.append(label);
+  for(const seat of seats.filter(seat=>seat.row===row)){
+   const id=seat.row+'-'+seat.number,button=document.createElement('button');
+   button.type='button';button.className='seat';button.textContent=seat.number;
+   button.disabled=seat.status!=='available';
+   button.setAttribute('aria-label','Rząd '+seat.row+', miejsce '+seat.number+(button.disabled?' — niedostępne':''));
+   button.setAttribute('aria-pressed',selected.has(id));
+   button.onclick=()=>{
+    if(selected.has(id))selected.delete(id);
+    else if(selected.size<2)selected.add(id);
+    else{message.textContent='Możesz wybrać maksymalnie 2 miejsca.';return;}
+    message.textContent='';renderPreview(seats);
+   };
+   line.append(button);
+  }
+  map.append(line);
+ }
+ document.getElementById('previewSelected').textContent=selected.size?
+  'Twój wybór: '+[...selected].map(id=>{const [row,seat]=id.split('-');return 'rząd '+row+', miejsce '+seat;}).join('; '):'Nie wybrano miejsc.';
+}
 function updateRules(){
  document.getElementById('confirmationRule').textContent='Sprawdź e-mail z wejściówką.';
  document.getElementById('verificationRule').textContent='Przydzieloną wejściówkę otrzymasz e-mailem.';
@@ -143,21 +168,14 @@ async function load(){
   try{
    const plan=await fetch('/api/additional-screening?plan=18');
    if(!plan.ok)throw Error();
-   const {seats}=await plan.json(),map=document.getElementById('previewMap');
-   map.replaceChildren();
-   for(let row=1;row<=7;row++){
-    const line=document.createElement('div');line.className='row';
-    const label=document.createElement('span');label.className='row-label';label.textContent='Rząd '+row;line.append(label);
-    for(const seat of seats.filter(seat=>seat.row===row)){
-     const place=document.createElement('span');place.className='seat';
-     place.textContent=seat.number;place.title=seat.status==='available'?'Wolne':'Niedostępne';
-     if(seat.status!=='available')place.style.opacity='.45';
-     line.append(place);
-    }
-    map.append(line);
-   }
-  }catch{document.getElementById('previewMap').textContent='Plan chwilowo niedostępny.';}
-  availability.textContent='Zapis dotyczy pokazu przedpremierowego 21 listopada o godz. 18:00. Po przydzieleniu wolnych foteli wyślemy ważną wejściówkę e-mailem. Samo zgłoszenie nie jest jeszcze wejściówką.';
+   const {seats}=await plan.json();
+   renderPreview(seats);
+   document.getElementById('submit').disabled=false;
+  }catch{
+   document.getElementById('previewMap').textContent='Plan chwilowo niedostępny. Odśwież plan sali, aby spróbować ponownie.';
+   document.getElementById('submit').disabled=true;
+  }
+  availability.textContent='Pokaz przedpremierowy 21 listopada o godz. 18:00. Po rezerwacji wybranych foteli otrzymasz ważną wejściówkę e-mailem.';
   form.classList.remove('hidden');
   return;
  }
@@ -213,6 +231,7 @@ function showChallenge(siteKey){
   s.onload=()=>{widget=window.turnstile.render('#challenge',{sitekey:siteKey,theme:'dark'});};document.head.append(s);
  }
 }
+document.getElementById('previewReload').onclick=()=>load().catch(error=>message.textContent=error.message);
 waiting.onchange=setWaiting;
 document.getElementById('alternative').onclick=()=>{document.getElementById('alternativeChoice').classList.remove('hidden');waiting.checked=true;setWaiting();document.getElementById('seats').focus();};
 document.getElementById('seats').onchange=()=>{document.getElementById('standingConsent').checked=false;updateVariant();};
@@ -222,12 +241,12 @@ form.addEventListener('submit',async e=>{
  const p=normalize(document.getElementById('phone').value),repeat=normalize(document.getElementById('phoneRepeat').value);
  if(!/^\+?[0-9]{9,15}$/.test(p)||p!==repeat){message.textContent='Wpisz poprawny numer telefonu identycznie w obu polach.';return;}
  if(!interestMode&&waiting.checked&&!document.getElementById('standingConsent').checked){message.textContent='Potwierdź zasady wejścia bez gwarancji fotela i listy rezerwowej.';return;}
- if(!interestMode&&!waiting.checked&&!selected.size){message.textContent='Wybierz przynajmniej jedno miejsce.';return;}
+ if((interestMode||!waiting.checked)&&!selected.size){message.textContent='Wybierz przynajmniej jedno miejsce.';return;}
  const button=document.getElementById('submit');button.disabled=true;
  try{
   const body={...Object.fromEntries(new FormData(form)),seatIds:[...selected],waiting:waiting.checked,encorePriority:!document.getElementById('encorePriority').disabled&&document.getElementById('encorePriority').checked,acceptStanding:document.getElementById('standingConsent').checked};
   if(standingOnly)Object.assign(body,{standingOnly:true,waiting:true,seatIds:[]});
-  if(interestMode)Object.assign(body,{screeningInterest:true,seats:document.getElementById('interestSeats').value});
+  if(interestMode)Object.assign(body,{screeningInterest:true,seats:selected.size});
   const r=await fetch('/api/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();
   const errors={STANDING_UNAVAILABLE:'Wybrana liczba wejść bez fotela na 19:00 jest już niedostępna. Odśwież stronę lub wybierz pokaz o 18:00.',DUPLICATE:'Ten e-mail ma już aktywne zgłoszenie. Sprawdź skrzynkę.',SEATS_UNAVAILABLE:'Ktoś właśnie zarezerwował wybrane miejsca. Wybierz inne na odświeżonym planie.',CHALLENGE:'Potwierdź zabezpieczenie formularza.',INVALID_INPUT:'Sprawdź dane i zgodność obu numerów telefonu.',MAIL_UNAVAILABLE:'Nie udało się wysłać wiadomości. Zgłoszenie zostało anulowane; spróbuj ponownie.'};
   if(!r.ok){if(d.error==='SEATS_UNAVAILABLE')await load();throw Error(errors[d.error]||'Nie udało się przyjąć zgłoszenia. Spróbuj później.');}

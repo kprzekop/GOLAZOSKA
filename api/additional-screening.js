@@ -1,3 +1,4 @@
+import {prepareSelectedPreview} from '../lib/preview-selected-seats.js';
 import {isAdmin,json,sql,tokenValid} from '../lib/shared.js';
 import {additionalScreeningsReady,initializePreviewScreening,sendAdditionalScreeningOffers,deliverTransferConfirmation} from '../lib/additional-screenings.js';
 
@@ -6,7 +7,7 @@ export default async function handler(req,res){
  if(req.method==='GET'&&req.query?.plan==='18'){
   try{
    const db=sql();
-   await initializePreviewScreening(db);
+   await prepareSelectedPreview(db);
    const seats=await db`SELECT row_no AS row,seat_no AS number,
     CASE WHEN booking_id IS NOT NULL THEN 'taken' WHEN pool='public' THEN 'available' ELSE pool END AS status
     FROM additional_screening_seats WHERE screening_id=1 ORDER BY row_no,seat_no`;
