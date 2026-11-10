@@ -98,7 +98,7 @@ function showScreeningPlans(screenings,settings,bookings){
       const cell=document.createElement('th');cell.textContent=text;head.append(cell);
     }
     const body=table.createTBody();
-    for(const booking of bookings.filter(b=>b.screening_id===screening.id)){
+    for(const booking of bookings.filter(b=>b.screening_id===screening.id&&['offered','confirmed'].includes(b.status)&&(b.status!=='offered'||Date.parse(b.expires_at)>Date.now()))){
       const row=body.insertRow();
       const state=booking.transferred_at?'Zamiana przyjęta':booking.transfer_source_id?'Oczekuje na zgodę':booking.status;
       for(const text of [booking.name,booking.email,booking.standing_seats>0?'Bez fotela — '+booking.standing_seats+' osób':booking.seat_ids.join(', '),state,booking.transfer_sent_at?'Wysłano propozycję':'']){
