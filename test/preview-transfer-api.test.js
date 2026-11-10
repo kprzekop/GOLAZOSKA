@@ -123,3 +123,23 @@ test('18:00 standing pool opens after all seats are occupied, respects ten peopl
   assert.equal((await db.query("SELECT count(*)::int AS n FROM additional_screening_seats WHERE booking_id=$1",[occupied])).rows[0].n,83);
  }finally{await db.close();}
 });
+
+test('receipt resend includes active real reservations at both hours once, even when initial mail was already marked sent',async()=>{
+ db=new PGlite();mails=[];fail=false;
+ try{
+  for(const file of ['schema.sql','migrate-admissions.sql','migrate-tickets.sql'])await db.exec(await readFile(new URL('../db/'+file,import.meta.url),'utf8'));
+  const {prepareSelectedPreview,deliverSelectedPreview}=await import('../lib/preview-selected-seats.js');
+  const {deliverTickets}=await import('../lib/tickets.js');
+  await prepareSelectedPreview(tag);
+  await db.exec("UPDATE additional_screenings SET starts_at=now()+interval '7 days' WHERE id=1");
+  const premiere=(await db.query("INSERT INTO premiere_reservations(name,email,phone,seats,status,admission,verified_at) VALUES('Real','real@example.test','600123456',2,'confirmed','standing',now()) RETURNING id")).rows[0].id;
+  await db.exec("INSERT INTO premiere_reservations(name,email,phone,seats,status,admission,verified_at) VALUES('Printed','print@example.invalid','000000000',1,'confirmed','standing',now()),('Cancelled','cancelled@example.test','600123457',1,'cancelled','standing',now())");
+  const preview=(await db.query("SELECT preview_reserve_selected('Direct','direct@example.test','600123456',ARRAY['7-7']) AS id")).rows[0].id;
+  await deliverTickets(tag,premiere);await deliverSelectedPreview(tag,preview);mails=[];
+  const {resendReservationReceipts}=await import('../lib/receipt-resend.js');
+  const result=await resendReservationReceipts(tag,{batchSize:10,pauseMs:0,inspect:false});
+  assert.equal(result.total,2);assert.equal(result.sent,2);assert.equal(result.pending,0);assert.equal(result.failed,0);assert.equal(result.originally_unsent,0);
+  assert.equal(mails.length,2);assert.ok(mails.every(mail=>mail[4].startsWith('reservation-receipt-20261110/')));
+  await resendReservationReceipts(tag,{batchSize:10,pauseMs:0,inspect:false});assert.equal(mails.length,2);
+ }finally{await db.close();}
+});

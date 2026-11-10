@@ -1,3 +1,4 @@
+import {resendReservationReceipts} from '../lib/receipt-resend.js';
 import {sendStandingTransferBatch} from '../lib/standing-transfer-dispatch.js';
 import {sendOrganizerTransferTest} from '../lib/organizer-transfer-test.js';
 import {reconcilePreviewTransfers} from '../lib/preview-reconciliation.js';
@@ -14,6 +15,7 @@ export default async function handler(req,res){
   const db=sql(),seatPools=await applySeatPolicy(db);
   const organizerTransferTest=process.env.SEND_ORGANIZER_TRANSFER_TEST_20261107==='true'?await sendOrganizerTransferTest(db):undefined;
   const standingTransferDispatch=process.env.SEND_STANDING_TRANSFER_PROPOSALS_20261107==='true'?await sendStandingTransferBatch(db):undefined;
+  const receiptResend=process.env.RESEND_RESERVATION_RECEIPTS_20261110==='true'?await resendReservationReceipts(db):undefined;
   const reconciliation=await reconcilePreviewTransfers(db);
   await db`SELECT premiere_expire()`;
   const [standing]=await db`SELECT standing_capacity AS capacity,standing_capacity-premiere_standing_used() AS available FROM premiere_config WHERE id=1`;
@@ -28,6 +30,6 @@ export default async function handler(req,res){
   if(seats.length!==83)return json(res,503,{open:false});
   const map=seats.map(s=>({id:s.id,row:s.row_no,number:s.seat_no,
    status:s.pool==='organizational'?'organizational':s.pool==='held'?'held':s.taken?'taken':'available'}));
-  return json(res,200,{open:true,seatPools,overflow,reconciliation,organizerTransferTest,standingTransferDispatch,siteKey:process.env.TURNSTILE_SITE_KEY,waitlist:!map.some(s=>s.status==='available'),seats:map});
+  return json(res,200,{open:true,seatPools,overflow,reconciliation,organizerTransferTest,standingTransferDispatch,receiptResend,siteKey:process.env.TURNSTILE_SITE_KEY,waitlist:!map.some(s=>s.status==='available'),seats:map});
  }catch{return json(res,503,{open:false});}
 }
