@@ -87,7 +87,7 @@ export default async function handler(req,res){
    (SELECT count(*)::int FROM additional_screening_bookings b WHERE b.screening_id=s.id AND b.status='offered' AND b.expires_at>now()) AS offered
    FROM additional_screenings s`:[];
   const screeningBookings=invitationsReady?await db`SELECT b.id,b.screening_id,b.name,b.email,b.status,b.expires_at,
-   b.transfer_sent_at,b.transferred_at,b.transfer_source_id,
+   b.transfer_sent_at,b.transferred_at,b.transfer_source_id,COALESCE((to_jsonb(b)->>'standing_seats')::int,0) AS standing_seats,
    ARRAY(SELECT p.row_no||'-'||p.seat_no FROM additional_screening_seats p WHERE p.booking_id=b.id ORDER BY p.row_no,p.seat_no) AS seat_ids
    FROM additional_screening_bookings b ORDER BY b.screening_id,b.name,b.id`:[];
   const moved=new Set(screeningBookings.filter(b=>b.transferred_at).map(b=>b.transfer_source_id));
