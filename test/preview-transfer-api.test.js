@@ -186,10 +186,13 @@ test('followup preserves independently selected 18:00 seats for a viewer who als
   const direct=(await db.query("SELECT preview_reserve_selected('Dual','dual@example.test','600123456',ARRAY['7-6']) AS id")).rows[0].id;
   const source=(await db.query("INSERT INTO premiere_reservations(name,email,phone,seats,status,admission,verified_at) VALUES('Dual','dual@example.test','600123456',1,'confirmed','standing',now()) RETURNING id")).rows[0].id;
   await db.query("INSERT INTO additional_screening_bookings(screening_id,source_id,transfer_source_id,name,email,status,expires_at) VALUES(1,$1,$1,'Dual','dual@example.test','offered',now()+interval '2 days')",[source]);
-  process.env.TRANSFER_FOLLOWUP_TARGETS_20261112=JSON.stringify([{email:'dual@example.test'}]);
+  process.env.TRANSFER_FOLLOWUP_TARGETS_20261112='[]';
   const {processTransferFollowups}=await import('../lib/transfer-followup.js');
+  await processTransferFollowups(tag,{at:new Date('2026-11-10T15:00:00+01:00'),pauseMs:0});
+  await db.query("INSERT INTO transfer_followup_20261112(booking_id,source_id,reminder_sent_at) SELECT id,transfer_source_id,now() FROM additional_screening_bookings WHERE transfer_source_id=$1",[source]);
+  process.env.TRANSFER_FOLLOWUP_TARGETS_20261112=JSON.stringify([{email:'dual@example.test'}]);
   assert.equal((await processTransferFollowups(tag,{at:new Date('2026-11-10T16:00:00+01:00'),pauseMs:0})).sent,1);
-  assert.match(mails[0][2],/samodzielnie/);assert.match(mails[0][2],/rezerwacja.html/);assert.ok(mails[0][2].includes(direct));
+  assert.match(mails[0][4],/^transfer-followup-direct-/);assert.match(mails[0][2],/samodzielnie/);assert.match(mails[0][2],/rezerwacja.html/);assert.ok(mails[0][2].includes(direct));
   await processTransferFollowups(tag,{at:new Date('2026-11-13T00:01:00+01:00'),pauseMs:0});
   assert.equal((await db.query('SELECT status FROM additional_screening_bookings WHERE id=$1',[direct])).rows[0].status,'confirmed');
   assert.equal((await db.query('SELECT count(*)::int AS n FROM additional_screening_seats WHERE booking_id=$1',[direct])).rows[0].n,1);
