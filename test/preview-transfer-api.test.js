@@ -163,7 +163,7 @@ test('Thursday followup reminds only unaccepted proposals and after deadline sen
   const first=await processTransferFollowups(tag,{at:new Date('2026-11-10T16:00:00+01:00'),pauseMs:0});
   assert.equal(first.targets,3);assert.equal(first.reminders_sent,3);assert.equal(first.sent,3);assert.equal(first.failed,0);
   assert.equal(mails.length,3);assert.ok(mails.every(mail=>mail[2].includes('12 listopada')));
-  assert.equal((await db.query('SELECT expires_at FROM additional_screening_bookings WHERE id=$1',[bookings[1]])).rows[0].expires_at,new Date(TRANSFER_DEADLINE).toISOString());
+  assert.equal(new Date((await db.query('SELECT expires_at FROM additional_screening_bookings WHERE id=$1',[bookings[1]])).rows[0].expires_at).getTime(),new Date(TRANSFER_DEADLINE).getTime());
   await processTransferFollowups(tag,{at:new Date('2026-11-11T16:00:00+01:00'),pauseMs:0});assert.equal(mails.length,3);
   await db.query("SELECT preview_choose_and_transfer($1,ARRAY['7-8'])",[bookings[0]]);
   await db.query("UPDATE additional_screening_seats SET booking_id=$1 WHERE screening_id=1 AND row_no=1 AND seat_no=1",[bookings[1]]);
