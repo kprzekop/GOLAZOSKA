@@ -176,3 +176,23 @@ test('Thursday followup reminds only unaccepted proposals and after deadline sen
   await processTransferFollowups(tag,{at:new Date('2026-11-13T00:02:00+01:00'),pauseMs:0});assert.equal(mails.length,5);
  }finally{if(previous===undefined)delete process.env.TRANSFER_FOLLOWUP_TARGETS_20261112;else process.env.TRANSFER_FOLLOWUP_TARGETS_20261112=previous;await db.close();}
 });
+
+test('followup preserves independently selected 18:00 seats for a viewer who also retains 19:00',async()=>{
+ db=new PGlite();mails=[];fail=false;
+ const previous=process.env.TRANSFER_FOLLOWUP_TARGETS_20261112;
+ try{
+  for(const file of ['schema.sql','migrate-admissions.sql','migrate-tickets.sql'])await db.exec(await readFile(new URL('../db/'+file,import.meta.url),'utf8'));
+  const {prepareSelectedPreview}=await import('../lib/preview-selected-seats.js');await prepareSelectedPreview(tag);
+  const direct=(await db.query("SELECT preview_reserve_selected('Dual','dual@example.test','600123456',ARRAY['7-6']) AS id")).rows[0].id;
+  const source=(await db.query("INSERT INTO premiere_reservations(name,email,phone,seats,status,admission,verified_at) VALUES('Dual','dual@example.test','600123456',1,'confirmed','standing',now()) RETURNING id")).rows[0].id;
+  await db.query("INSERT INTO additional_screening_bookings(screening_id,source_id,transfer_source_id,name,email,status,expires_at) VALUES(1,$1,$1,'Dual','dual@example.test','offered',now()+interval '2 days')",[source]);
+  process.env.TRANSFER_FOLLOWUP_TARGETS_20261112=JSON.stringify([{email:'dual@example.test'}]);
+  const {processTransferFollowups}=await import('../lib/transfer-followup.js');
+  assert.equal((await processTransferFollowups(tag,{at:new Date('2026-11-10T16:00:00+01:00'),pauseMs:0})).sent,1);
+  assert.match(mails[0][2],/samodzielnie/);assert.match(mails[0][2],/rezerwacja.html/);assert.ok(mails[0][2].includes(direct));
+  await processTransferFollowups(tag,{at:new Date('2026-11-13T00:01:00+01:00'),pauseMs:0});
+  assert.equal((await db.query('SELECT status FROM additional_screening_bookings WHERE id=$1',[direct])).rows[0].status,'confirmed');
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM additional_screening_seats WHERE booking_id=$1',[direct])).rows[0].n,1);
+  assert.equal(mails.length,2);
+ }finally{if(previous===undefined)delete process.env.TRANSFER_FOLLOWUP_TARGETS_20261112;else process.env.TRANSFER_FOLLOWUP_TARGETS_20261112=previous;await db.close();}
+});
