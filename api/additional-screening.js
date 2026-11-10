@@ -82,7 +82,7 @@ export default async function handler(req,res){
    await db`SELECT preview_choose_and_transfer(${id}::uuid,${seats}::text[])`;
   }else if(req.method==='POST')await db`SELECT additional_screening_reply(${id}::uuid,${action})`;
   if(req.method==='POST'&&action==='transfer')await deliverTransferConfirmation(db,id);
-  const [offer]=await db`SELECT b.transfer_source_id IS NOT NULL AS transfer, b.transferred_at,b.standing_seats, CASE WHEN b.status='offered' AND b.expires_at<=now()
+  const [offer]=await db`SELECT b.transfer_source_id IS NOT NULL AS transfer, b.transferred_at,COALESCE((to_jsonb(b)->>'standing_seats')::int,0) AS standing_seats, CASE WHEN b.status='offered' AND b.expires_at<=now()
    THEN 'expired' ELSE b.status END AS status,s.starts_at,b.expires_at,
    ARRAY(SELECT p.row_no||'-'||p.seat_no FROM additional_screening_seats p
     WHERE p.booking_id=b.id ORDER BY p.row_no,p.seat_no) AS seats
