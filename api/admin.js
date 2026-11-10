@@ -82,6 +82,8 @@ export default async function handler(req,res){
    GROUP BY s.id ORDER BY s.id`:[];
   const invitationsReady=await additionalScreeningsReady(db);
   const screeningSettings=invitationsReady?await db`SELECT id,invitations_open,
+   COALESCE((to_jsonb(s)->>'standing_capacity')::int,0) AS standing_capacity,
+   (SELECT COALESCE(sum(COALESCE((to_jsonb(b)->>'standing_seats')::int,0)),0)::int FROM additional_screening_bookings b WHERE b.screening_id=s.id AND b.status='confirmed') AS standing_used,
    to_char(starts_at AT TIME ZONE 'Europe/Warsaw','YYYY-MM-DD"T"HH24:MI') AS local_start,
    (SELECT count(*)::int FROM additional_screening_bookings b WHERE b.screening_id=s.id AND b.status='confirmed') AS confirmed,
    (SELECT count(*)::int FROM additional_screening_bookings b WHERE b.screening_id=s.id AND b.status='offered' AND b.expires_at>now()) AS offered
