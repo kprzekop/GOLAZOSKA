@@ -49,7 +49,7 @@ function showScreeningPlans(screenings,settings,bookings){
       save.textContent='Zapisz ustawienia';
       const feedback=document.createElement('p');
       feedback.setAttribute('role','status');
-      feedback.textContent='Oferty oczekujące: '+config.offered+' · Potwierdzone rezerwacje: '+config.confirmed;
+      feedback.textContent='Oferty oczekujące: '+config.offered+' · Potwierdzone rezerwacje: '+config.confirmed+' · Bez fotela: '+config.standing_used+' / '+config.standing_capacity;
       form.append(label,openLabel,save,feedback);
       form.onsubmit=async event=>{
         event.preventDefault();
@@ -101,7 +101,7 @@ function showScreeningPlans(screenings,settings,bookings){
     for(const booking of bookings.filter(b=>b.screening_id===screening.id)){
       const row=body.insertRow();
       const state=booking.transferred_at?'Zamiana przyjęta':booking.transfer_source_id?'Oczekuje na zgodę':booking.status;
-      for(const text of [booking.name,booking.email,booking.seat_ids.join(', '),state,booking.transfer_sent_at?'Wysłano propozycję':'']){
+      for(const text of [booking.name,booking.email,booking.standing_seats>0?'Bez fotela — '+booking.standing_seats+' osób':booking.seat_ids.join(', '),state,booking.transfer_sent_at?'Wysłano propozycję':'']){
         row.insertCell().textContent=text;
       }
       const actions=row.insertCell(),link=document.createElement('a');

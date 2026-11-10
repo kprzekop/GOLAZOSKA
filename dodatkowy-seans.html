@@ -51,7 +51,7 @@ async function load(action){
   if(!response.ok)throw Error(response.status===409?'Zamiana nie jest już dostępna. Nie zmieniliśmy zgłoszenia na 19:00. Odśwież stronę, aby sprawdzić aktualny stan.':response.status===404||response.status===400?'Nie znaleziono propozycji.':'Nie udało się pobrać propozycji. Spróbuj ponownie.');
   const offer=await response.json();
   document.getElementById('when').textContent=format.format(new Date(offer.starts_at))+' · po seansie krótkie spotkanie z twórcami · sala widowiskowa MDK, Rynek Zygmunta Augusta 9. Wejście od ul. Kościelnej, II piętro.';
-  document.getElementById('seats').textContent=offer.seats.map(id=>{const [row,seat]=id.split('-');return 'Rząd '+row+', miejsce '+seat;}).join(' · ');
+  document.getElementById('seats').textContent=offer.standing_seats>0?'Wejście bez gwarancji fotela dla '+offer.standing_seats+' osób':offer.seats.map(id=>{const [row,seat]=id.split('-');return 'Rząd '+row+', miejsce '+seat;}).join(' · ');
   status.textContent=({offered:'Przyjmij propozycję do '+format.format(new Date(offer.expires_at))+'.',confirmed:'Twoja rezerwacja jest potwierdzona. Zachowaj ten link.',declined:'Propozycja odrzucona.',cancelled:'Rezerwacja anulowana.',expired:'Propozycja wygasła.'})[offer.status];
   accept.hidden=offer.status!=='offered';
   decline.hidden=!['offered','confirmed'].includes(offer.status)||Date.now()>=Date.parse(offer.starts_at);

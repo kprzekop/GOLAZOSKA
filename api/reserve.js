@@ -13,7 +13,7 @@ export default async function handler(req,res){
  return json(res,503,{error:'UNAVAILABLE'});
  if(body.website)return json(res,400,{error:'INVALID_INPUT'});
  let input;
- try{input=validateBooking(interest?{...body,waiting:false}:body);if(!interest&&input.waiting&&body.acceptStanding!==true)throw Error('INVALID_INPUT');}catch{return json(res,400,{error:'INVALID_INPUT'});}
+ try{input=validateBooking(interest?{...body,waiting:body.previewStanding===true}:body);if(input.waiting&&body.acceptStanding!==true)throw Error('INVALID_INPUT');}catch{return json(res,400,{error:'INVALID_INPUT'});}
  try{
   const challenge=String(body['cf-turnstile-response']||'');
   if(!challenge||challenge.length>2048)return json(res,400,{error:'CHALLENGE'});
@@ -26,7 +26,9 @@ export default async function handler(req,res){
   const {name,email,phone,seatIds,seats,waiting}=input,db=sql();
   if(interest){
    await prepareSelectedPreview(db);
-   const [booking]=await db`SELECT preview_reserve_selected(${name},${email},${phone},${seatIds}::text[]) AS id`;
+   const [booking]=body.previewStanding===true?
+    await db`SELECT preview_reserve_standing(${name},${email},${phone},${seats}) AS id`:
+    await db`SELECT preview_reserve_selected(${name},${email},${phone},${seatIds}::text[]) AS id`;
    await deliverSelectedPreview(db,booking.id);
    return json(res,200,{status:'confirmed',admission:'seated',ticketUrl:'/dodatkowy-seans.html?oferta='+booking.id});
   }
@@ -72,7 +74,7 @@ export default async function handler(req,res){
   }
   return json(res,200,{status:row.booking_status,admission:details.admission});
  }catch(e){
-  for(const [code,status]of [['DUPLICATE',409],['SEATS_UNAVAILABLE',409],['INVALID_INPUT',400],['CLOSED',503]])
+  for(const [code,status]of [['DUPLICATE',409],['SEATED_AVAILABLE',409],['STANDING_UNAVAILABLE',409],['SEATS_UNAVAILABLE',409],['INVALID_INPUT',400],['CLOSED',503]])
    if(String(e.message).includes(code))return json(res,status,{error:code});
   console.error('Reservation failed');return json(res,503,{error:'UNAVAILABLE'});
  }
