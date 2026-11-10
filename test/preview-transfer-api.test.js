@@ -103,3 +103,23 @@ test('direct 18:00 booking reserves exactly selected seats and rejects competing
   assert.equal((await db.query("SELECT count(*)::int AS n FROM additional_screening_bookings")).rows[0].n,1);
  }finally{globalThis.fetch=previousFetch;await db.close();}
 });
+
+test('18:00 standing pool opens after all seats are occupied, respects ten people and releases cancelled admissions',async()=>{
+ db=new PGlite();try{
+  for(const file of ['schema.sql','migrate-admissions.sql','migrate-tickets.sql'])await db.exec(await readFile(new URL('../db/'+file,import.meta.url),'utf8'));
+  const {prepareSelectedPreview}=await import('../lib/preview-selected-seats.js');await prepareSelectedPreview(tag);
+  await db.exec("UPDATE additional_screenings SET starts_at=now()+interval '7 days' WHERE id=1");
+  const create=async(email,count)=>(await db.query("SELECT preview_reserve_standing('Standing',$1,'600123456',$2) AS id",[email,count])).rows[0].id;
+  await assert.rejects(create('early@example.test',1),/SEATED_AVAILABLE/);
+  const occupied=(await db.query("INSERT INTO additional_screening_bookings(screening_id,source_id,name,email,status,expires_at) VALUES(1,gen_random_uuid(),'Occupied','occupied@example.test','confirmed',now()+interval '7 days') RETURNING id")).rows[0].id;
+  await db.query('UPDATE additional_screening_seats SET booking_id=$1 WHERE screening_id=1',[occupied]);
+  let first;
+  for(let i=0;i<5;i++){const id=await create('standing-'+i+'@example.test',2);if(i===0)first=id;}
+  await assert.rejects(create('full@example.test',1),/STANDING_UNAVAILABLE/);
+  await assert.rejects(create('three@example.test',3),/INVALID_INPUT/);
+  await db.query("SELECT additional_screening_reply($1,'decline')",[first]);
+  await create('replacement@example.test',2);
+  assert.equal((await db.query("SELECT sum(standing_seats)::int AS n FROM additional_screening_bookings WHERE status='confirmed'")).rows[0].n,10);
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM additional_screening_seats WHERE booking_id=$1",[occupied])).rows[0].n,83);
+ }finally{await db.close();}
+});
