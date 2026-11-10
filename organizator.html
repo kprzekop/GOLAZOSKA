@@ -49,7 +49,7 @@ function showScreeningPlans(screenings,settings,bookings){
       save.textContent='Zapisz ustawienia';
       const feedback=document.createElement('p');
       feedback.setAttribute('role','status');
-      feedback.textContent='Oferty oczekujące: '+config.offered+' · Potwierdzone rezerwacje: '+config.confirmed;
+      feedback.textContent='Oferty oczekujące: '+config.offered+' · Potwierdzone rezerwacje: '+config.confirmed+' · Bez fotela: '+config.standing_used+' / '+config.standing_capacity;
       form.append(label,openLabel,save,feedback);
       form.onsubmit=async event=>{
         event.preventDefault();
