@@ -1,3 +1,4 @@
+import {cancelOrganizerPreview} from '../lib/cancel-organizer-preview.js';
 import {prepareSelectedPreview} from '../lib/preview-selected-seats.js';
 import {isAdmin,json,sql,tokenValid} from '../lib/shared.js';
 import {additionalScreeningsReady,initializePreviewScreening,sendAdditionalScreeningOffers,deliverTransferConfirmation} from '../lib/additional-screenings.js';
@@ -8,6 +9,7 @@ export default async function handler(req,res){
   try{
    const db=sql();
    await prepareSelectedPreview(db);
+   const organizerCancellation=await cancelOrganizerPreview(db);
    const seats=await db`SELECT row_no AS row,seat_no AS number,
     CASE WHEN booking_id IS NOT NULL THEN 'taken' WHEN pool='public' THEN 'available' ELSE pool END AS status
     FROM additional_screening_seats WHERE screening_id=1 ORDER BY row_no,seat_no`;
@@ -19,7 +21,7 @@ export default async function handler(req,res){
     (SELECT released_seats FROM preview_unaccepted_holds_released_v3 WHERE id=1) AS released_unaccepted,
     (SELECT standing_capacity FROM additional_screenings WHERE id=1) AS standing_capacity,
     (SELECT COALESCE(sum(standing_seats),0)::int FROM additional_screening_bookings WHERE screening_id=1 AND (status='confirmed' OR (status='offered' AND expires_at>now()))) AS standing_used`;
-   return json(res,200,{seats,summary});
+   return json(res,200,{seats,summary,organizerCancellation});
   }catch{return json(res,503,{error:'UNAVAILABLE'});}
  }
  if(req.method==='POST'&&req.body?.action==='dispatch-transfers'){
