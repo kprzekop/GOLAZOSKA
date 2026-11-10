@@ -16,7 +16,9 @@ export default async function handler(req,res){
     (SELECT count(*)::int FROM additional_screening_seats s JOIN additional_screening_bookings b ON b.id=s.booking_id
      WHERE s.screening_id=1 AND b.status='confirmed' AND (b.transfer_source_id IS NULL OR b.transferred_at IS NOT NULL)) AS reserved,
     (SELECT count(*)::int FROM additional_screening_seats WHERE screening_id=1 AND pool='public' AND booking_id IS NULL) AS available,
-    (SELECT released_seats FROM preview_unaccepted_holds_released_v3 WHERE id=1) AS released_unaccepted`;
+    (SELECT released_seats FROM preview_unaccepted_holds_released_v3 WHERE id=1) AS released_unaccepted,
+    (SELECT standing_capacity FROM additional_screenings WHERE id=1) AS standing_capacity,
+    (SELECT COALESCE(sum(standing_seats),0)::int FROM additional_screening_bookings WHERE screening_id=1 AND (status='confirmed' OR (status='offered' AND expires_at>now()))) AS standing_used`;
    return json(res,200,{seats,summary});
   }catch{return json(res,503,{error:'UNAVAILABLE'});}
  }
@@ -80,7 +82,7 @@ export default async function handler(req,res){
    await db`SELECT preview_choose_and_transfer(${id}::uuid,${seats}::text[])`;
   }else if(req.method==='POST')await db`SELECT additional_screening_reply(${id}::uuid,${action})`;
   if(req.method==='POST'&&action==='transfer')await deliverTransferConfirmation(db,id);
-  const [offer]=await db`SELECT b.transfer_source_id IS NOT NULL AS transfer, b.transferred_at, CASE WHEN b.status='offered' AND b.expires_at<=now()
+  const [offer]=await db`SELECT b.transfer_source_id IS NOT NULL AS transfer, b.transferred_at,b.standing_seats, CASE WHEN b.status='offered' AND b.expires_at<=now()
    THEN 'expired' ELSE b.status END AS status,s.starts_at,b.expires_at,
    ARRAY(SELECT p.row_no||'-'||p.seat_no FROM additional_screening_seats p
     WHERE p.booking_id=b.id ORDER BY p.row_no,p.seat_no) AS seats
