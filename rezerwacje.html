@@ -105,9 +105,9 @@ function renderPreview(seats){
   const label=document.createElement('span');label.className='row-label';label.textContent='Rząd '+row;line.append(label);
   for(const seat of seats.filter(seat=>seat.row===row)){
    const id=seat.row+'-'+seat.number,button=document.createElement('button');
-   button.type='button';button.className='seat '+seat.status;button.textContent=seat.number;
+   button.type='button';button.className='seat '+(seat.status==='organizational'?'taken':seat.status);button.textContent=seat.number;
    button.disabled=seat.status!=='available';
-   button.setAttribute('aria-label','Rząd '+seat.row+', miejsce '+seat.number+(seat.status==='taken'?' — zajęte':button.disabled?' — niedostępne':' — wolne'));
+   button.setAttribute('aria-label','Rząd '+seat.row+', miejsce '+seat.number+(['taken','organizational'].includes(seat.status)?' — zajęte':button.disabled?' — niedostępne':' — wolne'));
    button.setAttribute('aria-pressed',selected.has(id));
    button.onclick=()=>{
     if(selected.has(id))selected.delete(id);
@@ -156,8 +156,8 @@ function render(){
   const line=document.createElement('div');line.className='row';
   const label=document.createElement('span');label.className='row-label';label.textContent='Rząd '+row;line.append(label);
   for(const s of seatData.filter(s=>s.row===row)){
-   const b=document.createElement('button');b.type='button';b.className='seat '+s.status;b.textContent=s.number;
-   const labels={available:'wolne',taken:'zajęte',organizational:'pula organizatora',held:'dostępne później'};
+   const b=document.createElement('button');b.type='button';b.className='seat '+(s.status==='organizational'?'taken':s.status);b.textContent=s.number;
+   const labels={available:'wolne',taken:'zajęte',organizational:'zajęte',held:'dostępne później'};
    b.setAttribute('aria-label','Rząd '+row+', miejsce '+s.number+', '+labels[s.status]);
    if(standingOnly)b.setAttribute('aria-label','Rząd '+row+', miejsce '+s.number+', '+(s.status==='available'?'niedostępne do rezerwacji':labels[s.status]));
    b.disabled=standingOnly||s.status!=='available'||waiting.checked;b.setAttribute('aria-pressed',selected.has(s.id)?'true':'false');
@@ -237,7 +237,7 @@ async function load(){
   form.before(plan);
   plan.querySelector('.screen').textContent='EKRAN · PREMIERA O 19:00';
   document.getElementById('seatInstructions').textContent='Plan sali do podglądu. Rząd 1 jest najbliżej ekranu.';
-  document.getElementById('seatLegend').textContent='Brązowe — zajęte · fioletowe — pula organizatora · ciemnobeżowe — wstrzymane · szare — niedostępne do rezerwacji.';
+  document.getElementById('seatLegend').textContent='Brązowe — zajęte · ciemnobeżowe — wstrzymane · szare — niedostępne do rezerwacji.';
   document.getElementById('selected').hidden=true;
   seatData=d.seats;
   showStandingSummary('standing19',standingAvailable,d.overflow.capacity,true);
