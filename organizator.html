@@ -148,7 +148,24 @@ async function load(savePassword=false){
     renderGuests();
     document.getElementById('pools').hidden=false;const pools=document.getElementById('poolButtons');pools.replaceChildren();
     for(const s of d.seats.filter(s=>s.pool!=='organizational')){const b=document.createElement('button');b.textContent='Rząd '+s.row_no+', m. '+s.seat_no+': '+(s.taken?'zajęte':s.pool==='held'?'udostępnij':'wstrzymaj');b.disabled=s.taken;
-    b.onclick=async()=>{if(!confirm(b.textContent+'?'))return;b.disabled=true;try{const r=await fetch('/api/admin',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({action:'pool',id:s.id,pool:s.pool==='held'?'public':'held'})});if(!r.ok)throw Error('Nie udało się zmienić puli.');await load();}catch(e){status.textContent=e.message;b.disabled=false;}};pools.append(b);}document.getElementById('table').hidden=false;
+    b.onclick=async()=>{if(!confirm(b.textContent+'?'))return;b.disabled=true;try{const r=await fetch('/api/admin',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({action:'pool',id:s.id,pool:s.pool==='held'?'public':'held'})});if(!r.ok)throw Error('Nie udało się zmienić puli.');await load();}catch(e){status.textContent=e.message;b.disabled=false;}};pools.append(b);
+    if(s.pool==='held'&&!s.taken){
+     const guest=document.createElement('button');
+     guest.textContent='Rząd '+s.row_no+', m. '+s.seat_no+': przenieś do gościnnych';
+     guest.onclick=async()=>{
+      guest.disabled=true;b.disabled=true;
+      try{
+       const response=await fetch('/api/admin',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({action:'pool',id:s.id,pool:'organizational'})});
+       if(!response.ok)throw Error('Nie udało się przenieść fotela do puli gościnnej.');
+       guestRow.value=String(s.row_no);
+       await load();
+       guestStatus.textContent='Rząd '+s.row_no+', miejsce '+s.seat_no+' jest w puli gościnnej.';
+       document.getElementById('guests').scrollIntoView();
+      }catch(error){status.textContent=error.message;guest.disabled=false;b.disabled=false;}
+     };
+     pools.append(guest);
+    }
+    }document.getElementById('table').hidden=false;
     document.getElementById('export').hidden=false;document.getElementById('refresh').hidden=false;
     const active=r=>['verification','reserved','confirmed','offered'].includes(r.status);
     const seated=rows.filter(r=>active(r)&&r.admission==='seated').reduce((n,r)=>n+Number(r.seats),0);
