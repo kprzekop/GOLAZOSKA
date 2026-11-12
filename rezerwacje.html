@@ -237,7 +237,7 @@ async function load(){
   form.before(plan);
   plan.querySelector('.screen').textContent='EKRAN · PREMIERA O 19:00';
   document.getElementById('seatInstructions').textContent='Plan sali do podglądu. Rząd 1 jest najbliżej ekranu.';
-  document.getElementById('seatLegend').textContent='Brązowe — zajęte. Pozostałe — niedostępne do rezerwacji.';
+  document.getElementById('seatLegend').textContent='Brązowe — zajęte · fioletowe — pula organizatora · ciemnobeżowe — wstrzymane · szare — niedostępne do rezerwacji.';
   document.getElementById('selected').hidden=true;
   seatData=d.seats;
   showStandingSummary('standing19',standingAvailable,d.overflow.capacity,true);
