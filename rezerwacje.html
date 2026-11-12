@@ -20,6 +20,8 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 .primary-cta{display:inline-flex;justify-content:center;padding:16px 24px;background:#e8bd75;color:#101716;font-weight:600;text-decoration:none;border-radius:4px}.primary-cta:hover{background:#f4d6a5}.sold-out{padding:18px;border-left:3px solid #c8a77b;background:#101716;font-size:19px}html{scroll-behavior:smooth}#form{scroll-margin-top:24px}.primary-cta:focus-visible{outline:3px solid white;outline-offset:4px}@media(max-width:600px){.primary-cta,#submit{width:100%}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 .plan-layout{display:grid;gap:16px}.plan-layout>div{min-width:0}
 .standing-summary{align-self:start;padding:14px;border:1px solid #8d775d;background:#16201d;font-size:17px}
+.standing-picker label{margin:12px 0 4px;font-size:16px}
+.standing-picker select{font-size:18px;padding:8px}
 .standing-summary strong{display:block;color:#e8bd75;font-size:25px}
 @media(min-width:960px){
  main{width:min(920px,calc(100% - 38px))}
@@ -53,7 +55,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
  <div id="premiereOptions"><h2>1. Wybierz wejście</h2>
  <div id="seatedChoice">
  <p id="seatInstructions">Wybierz od 1 do 2 zielonych foteli. Rząd 1 jest najbliżej ekranu.</p>
- <div class="plan-layout"><div><div class="screen">EKRAN</div><div id="seatmap" class="seatmap" role="group" aria-label="Plan sali"></div></div><aside id="standing19" class="standing-summary" hidden aria-live="polite"><strong>Wejściówki bez fotela</strong><span></span></aside></div>
+ <div class="plan-layout"><div><div class="screen">EKRAN</div><div id="seatmap" class="seatmap" role="group" aria-label="Plan sali"></div></div><aside id="standing19" class="standing-summary" hidden><strong>Wejściówki bez fotela</strong><span aria-live="polite"></span><div class="standing-picker" hidden><label for="seats">Liczba wejściówek</label><select id="seats" name="seats" form="form"><option value="1">1 wejściówka</option><option value="2">2 wejściówki</option></select></div></aside></div>
  <p class="legend" id="seatLegend">Zielone: wolne · złote: Twój wybór · brązowe: zajęte · pozostałe: niedostępne.</p>
  <p id="selected" aria-live="polite">Nie wybrano miejsc.</p>
  </div>
@@ -62,13 +64,13 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
  <div id="alternativeChoice" class="hidden">
  <label class="inline"><input id="waiting" type="checkbox"><span id="alternativeLabel">Wybieram wejście na stojąco</span></label>
  <div id="waitCount" class="hidden">
- <label for="seats">Liczba osób</label><select id="seats" name="seats"><option>1</option><option>2</option></select>
+ 
  <p id="overflowAvailability" aria-live="polite"></p>
  <label class="inline hidden" id="encoreChoice"><input id="encorePriority" type="checkbox" disabled><span>Chcę otrzymać w pierwszej kolejności propozycję miejsc siedzących na kolejny seans. Zachowuję wejście na premierę bez gwarancji fotela.</span></label>
  <label class="inline"><input id="standingConsent" type="checkbox"><span id="consentText"></span></label>
  </div></div>
  </div>
- <div id="interestOptions" class="hidden"><h2>1. Wybierz miejsca</h2><p id="previewInstructions">Rząd 1 jest najbliżej ekranu.</p><div class="plan-layout"><div><div class="screen">EKRAN · POKAZ O 18:00</div><div id="previewMap" class="seatmap" aria-label="Plan sali na 18:00"></div></div><aside id="standing18" class="standing-summary" hidden aria-live="polite"><strong>Wejściówki bez fotela</strong><span></span></aside></div><p class="legend">Zielone: wolne · złote: Twój wybór · brązowe: zajęte · pozostałe: niedostępne.</p><p id="previewSelected" aria-live="polite">Nie wybrano miejsc.</p><button id="previewReload" type="button">Odśwież plan sali</button><div id="previewStandingChoice" class="hidden"><p>Fotele są zajęte. Możesz zarezerwować wejście na 18:00 bez gwarancji fotela.</p><label for="previewStandingCount">Liczba osób</label><select id="previewStandingCount"><option>1</option><option>2</option></select><label class="inline"><input id="previewStandingConsent" type="checkbox">Rozumiem, że udział w pokazie o 18:00 może odbyć się na stojąco.</label></div></div>
+ <div id="interestOptions" class="hidden"><h2>1. Wybierz miejsca</h2><p id="previewInstructions">Rząd 1 jest najbliżej ekranu.</p><div class="plan-layout"><div><div class="screen">EKRAN · POKAZ O 18:00</div><div id="previewMap" class="seatmap" aria-label="Plan sali na 18:00"></div></div><aside id="standing18" class="standing-summary" hidden><strong>Wejściówki bez fotela</strong><span aria-live="polite"></span><div class="standing-picker" hidden><label for="previewStandingCount">Liczba wejściówek</label><select id="previewStandingCount"><option value="1">1 wejściówka</option><option value="2">2 wejściówki</option></select></div></aside></div><p class="legend">Zielone: wolne · złote: Twój wybór · brązowe: zajęte · pozostałe: niedostępne.</p><p id="previewSelected" aria-live="polite">Nie wybrano miejsc.</p><button id="previewReload" type="button">Odśwież plan sali</button><div id="previewStandingChoice" class="hidden"><p>Fotele są zajęte. Możesz zarezerwować wejście na 18:00 bez gwarancji fotela.</p><label class="inline"><input id="previewStandingConsent" type="checkbox">Rozumiem, że udział w pokazie o 18:00 może odbyć się na stojąco.</label></div></div>
  <h2 id="contactHeading">2. Podaj dane</h2>
  <label for="name">Imię i nazwisko</label><input id="name" name="name" maxlength="120" minlength="2" required autocomplete="name">
  <label for="email">Adres e-mail</label><input id="email" name="email" type="email" maxlength="254" required autocomplete="email">
@@ -89,9 +91,10 @@ let seatData=[],widget,standingAvailable=0;
 const interestMode=new URLSearchParams(location.search).get('pokaz')!=='19';
 const standingOnly=!interestMode;
 let previewStanding=false,previewStandingAvailable=0;
-function showStandingSummary(id, available, capacity){
+function showStandingSummary(id, available, capacity, canBook){
  const panel=document.getElementById(id);
  panel.querySelector('span').textContent='Wolne: '+available+' z '+capacity;
+ panel.querySelector('.standing-picker').hidden=!canBook||available<1;
  panel.hidden=false;
 }
 function renderPreview(seats){
@@ -191,7 +194,7 @@ async function load(){
    document.getElementById('previewSelected').hidden=!hasSeats;
    previewStanding=!hasSeats&&Number(summary?.standing_capacity)>0;
    previewStandingAvailable=Math.max(0,Number(summary?.standing_capacity||0)-Number(summary?.standing_used||0));
-   showStandingSummary('standing18',previewStandingAvailable,Number(summary?.standing_capacity||0));
+   showStandingSummary('standing18',previewStandingAvailable,Number(summary?.standing_capacity||0),previewStanding);
    document.getElementById('previewStandingChoice').classList.toggle('hidden',!previewStanding||previewStandingAvailable<1);
    document.getElementById('previewStandingConsent').required=previewStanding&&previewStandingAvailable>0;
    const count=document.getElementById('previewStandingCount');
@@ -237,7 +240,7 @@ async function load(){
   document.getElementById('seatLegend').textContent='Brązowe — zajęte. Pozostałe — niedostępne do rezerwacji.';
   document.getElementById('selected').hidden=true;
   seatData=d.seats;
-  showStandingSummary('standing19',standingAvailable,d.overflow.capacity);
+  showStandingSummary('standing19',standingAvailable,d.overflow.capacity,true);
   document.getElementById('alternative').classList.add('hidden');
   document.getElementById('alternativeChoice').classList.remove('hidden');
   document.getElementById('encoreChoice').classList.add('hidden');
