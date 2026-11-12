@@ -15,7 +15,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 .row{display:flex;gap:5px;align-items:center;justify-content:center;min-width:550px;margin:7px 0}.row-label{width:52px;flex-shrink:0;font-size:15px}
 .seat{width:31px;height:34px;flex-shrink:0;margin:0;padding:0;font:15px Arial,sans-serif;border:1px solid #c8a77b;background:#244c3b;color:#fff}
 .seat[aria-pressed="true"]{background:#e8bd75;color:#101716;outline:2px solid white}.seat:disabled{background:#3c403d;border-color:#777;color:#b0b0a4;opacity:1}
-.seat.held{background:#4e4334}.seat.organizational{background:#363648}.legend{font:15px/1.7 Arial,sans-serif}.inline{display:flex;gap:10px;align-items:start;font-size:17px}.inline input{width:auto;margin-top:8px}
+.seat.taken:disabled{background:#654039;border-color:#a16c60;color:#fff}.seat.held{background:#4e4334}.seat.organizational{background:#363648}.legend{font:15px/1.7 Arial,sans-serif}.inline{display:flex;gap:10px;align-items:start;font-size:17px}.inline input{width:auto;margin-top:8px}
 #selected{font-size:17px}button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:3px}
 .primary-cta{display:inline-flex;justify-content:center;padding:16px 24px;background:#e8bd75;color:#101716;font-weight:600;text-decoration:none;border-radius:4px}.primary-cta:hover{background:#f4d6a5}.sold-out{padding:18px;border-left:3px solid #c8a77b;background:#101716;font-size:19px}html{scroll-behavior:smooth}#form{scroll-margin-top:24px}.primary-cta:focus-visible{outline:3px solid white;outline-offset:4px}@media(max-width:600px){.primary-cta,#submit{width:100%}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style><link rel="icon" type="image/webp" sizes="640x640" href="/favicon.webp?v=20261027">
@@ -32,7 +32,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 <section aria-labelledby="additional-screenings">
 <h2 id="additional-screenings">Ten sam film. Wcześniejszy seans.</h2>
 <p>21 listopada 2026 o godz. 18:00 odbędzie się pokaz przedpremierowy. Po seansie zapraszamy na krótkie spotkanie z twórcami.</p>
-<p>Wybierz fotele na planie i podaj dane kontaktowe. Po rezerwacji otrzymasz ważną wejściówkę e-mailem.</p>
+<p>Sprawdź plan sali i dostępne wejścia. Po rezerwacji otrzymasz ważną wejściówkę e-mailem.</p>
 </section>
 <p><a class="primary-cta" href="#form" id="interestLink">Zarezerwuj na 18:00 ↓</a></p>
 <section id="rules" aria-label="Jak zarezerwować">
@@ -45,9 +45,9 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 <form id="form" class="hidden">
  <div id="premiereOptions"><h2>1. Wybierz wejście</h2>
  <div id="seatedChoice">
- <p>Wybierz od 1 do 2 zielonych foteli. Rząd 1 jest najbliżej ekranu.</p>
+ <p id="seatInstructions">Wybierz od 1 do 2 zielonych foteli. Rząd 1 jest najbliżej ekranu.</p>
  <div class="screen">EKRAN</div><div id="seatmap" class="seatmap" role="group" aria-label="Plan sali"></div>
- <p class="legend">Zielone: wolne · złote: Twój wybór · pozostałe: niedostępne.</p>
+ <p class="legend" id="seatLegend">Zielone: wolne · złote: Twój wybór · brązowe: zajęte · pozostałe: niedostępne.</p>
  <p id="selected" aria-live="polite">Nie wybrano miejsc.</p>
  </div>
  <button id="reload" type="button">Odśwież dostępność</button>
@@ -61,7 +61,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
  <label class="inline"><input id="standingConsent" type="checkbox"><span id="consentText"></span></label>
  </div></div>
  </div>
- <div id="interestOptions" class="hidden"><h2>1. Wybierz miejsca</h2><p>Wybierz od 1 do 2 zielonych foteli na planie sali. Rząd 1 jest najbliżej ekranu.</p><div class="screen">EKRAN · POKAZ O 18:00</div><div id="previewMap" class="seatmap" aria-label="Plan sali na 18:00"></div><p id="previewSelected" aria-live="polite">Nie wybrano miejsc.</p><button id="previewReload" type="button">Odśwież plan sali</button><div id="previewStandingChoice" class="hidden"><p>Fotele są zajęte. Możesz zarezerwować wejście na 18:00 bez gwarancji fotela.</p><label for="previewStandingCount">Liczba osób</label><select id="previewStandingCount"><option>1</option><option>2</option></select><label class="inline"><input id="previewStandingConsent" type="checkbox">Rozumiem, że udział w pokazie o 18:00 może odbyć się na stojąco.</label></div></div>
+ <div id="interestOptions" class="hidden"><h2>1. Wybierz miejsca</h2><p id="previewInstructions">Rząd 1 jest najbliżej ekranu.</p><div class="screen">EKRAN · POKAZ O 18:00</div><div id="previewMap" class="seatmap" aria-label="Plan sali na 18:00"></div><p class="legend">Zielone: wolne · złote: Twój wybór · brązowe: zajęte · pozostałe: niedostępne.</p><p id="previewSelected" aria-live="polite">Nie wybrano miejsc.</p><button id="previewReload" type="button">Odśwież plan sali</button><div id="previewStandingChoice" class="hidden"><p>Fotele są zajęte. Możesz zarezerwować wejście na 18:00 bez gwarancji fotela.</p><label for="previewStandingCount">Liczba osób</label><select id="previewStandingCount"><option>1</option><option>2</option></select><label class="inline"><input id="previewStandingConsent" type="checkbox">Rozumiem, że udział w pokazie o 18:00 może odbyć się na stojąco.</label></div></div>
  <h2 id="contactHeading">2. Podaj dane</h2>
  <label for="name">Imię i nazwisko</label><input id="name" name="name" maxlength="120" minlength="2" required autocomplete="name">
  <label for="email">Adres e-mail</label><input id="email" name="email" type="email" maxlength="254" required autocomplete="email">
@@ -90,9 +90,9 @@ function renderPreview(seats){
   const label=document.createElement('span');label.className='row-label';label.textContent='Rząd '+row;line.append(label);
   for(const seat of seats.filter(seat=>seat.row===row)){
    const id=seat.row+'-'+seat.number,button=document.createElement('button');
-   button.type='button';button.className='seat';button.textContent=seat.number;
+   button.type='button';button.className='seat '+seat.status;button.textContent=seat.number;
    button.disabled=seat.status!=='available';
-   button.setAttribute('aria-label','Rząd '+seat.row+', miejsce '+seat.number+(button.disabled?' — niedostępne':''));
+   button.setAttribute('aria-label','Rząd '+seat.row+', miejsce '+seat.number+(seat.status==='taken'?' — zajęte':button.disabled?' — niedostępne':' — wolne'));
    button.setAttribute('aria-pressed',selected.has(id));
    button.onclick=()=>{
     if(selected.has(id))selected.delete(id);
@@ -144,7 +144,8 @@ function render(){
    const b=document.createElement('button');b.type='button';b.className='seat '+s.status;b.textContent=s.number;
    const labels={available:'wolne',taken:'zajęte',organizational:'pula organizatora',held:'dostępne później'};
    b.setAttribute('aria-label','Rząd '+row+', miejsce '+s.number+', '+labels[s.status]);
-   b.disabled=s.status!=='available'||waiting.checked;b.setAttribute('aria-pressed',selected.has(s.id)?'true':'false');
+   if(standingOnly)b.setAttribute('aria-label','Rząd '+row+', miejsce '+s.number+', '+(s.status==='available'?'niedostępne do rezerwacji':labels[s.status]));
+   b.disabled=standingOnly||s.status!=='available'||waiting.checked;b.setAttribute('aria-pressed',selected.has(s.id)?'true':'false');
    b.onclick=()=>{
     if(selected.has(s.id))selected.delete(s.id);
     else if(selected.size<2)selected.add(s.id);
@@ -172,6 +173,10 @@ async function load(){
    const {seats,summary}=await plan.json();
    renderPreview(seats);
    const hasSeats=seats.some(seat=>seat.status==='available');
+   document.getElementById('previewInstructions').textContent=hasSeats
+    ?'Wybierz od 1 do 2 zielonych foteli. Rząd 1 jest najbliżej ekranu.'
+    :'Fotele są niedostępne. Rząd 1 jest najbliżej ekranu.';
+   document.getElementById('previewSelected').hidden=!hasSeats;
    previewStanding=!hasSeats&&Number(summary?.standing_capacity)>0;
    previewStandingAvailable=Math.max(0,Number(summary?.standing_capacity||0)-Number(summary?.standing_used||0));
    document.getElementById('previewStandingChoice').classList.toggle('hidden',!previewStanding||previewStandingAvailable<1);
@@ -211,7 +216,13 @@ async function load(){
   document.querySelector('[aria-labelledby="additional-screenings"]').hidden=true;
   document.getElementById('interestLink').textContent='Zarezerwuj wejście na 19:00 ↓';
   document.getElementById('interestLink').href='#form';
-  document.getElementById('seatedChoice').classList.add('hidden');
+  const plan=document.getElementById('seatedChoice');
+  form.before(plan);
+  plan.querySelector('.screen').textContent='EKRAN · PREMIERA O 19:00';
+  document.getElementById('seatInstructions').textContent='Plan sali do podglądu. Rząd 1 jest najbliżej ekranu.';
+  document.getElementById('seatLegend').textContent='Brązowe — zajęte. Pozostałe — niedostępne do rezerwacji.';
+  document.getElementById('selected').hidden=true;
+  seatData=d.seats;
   document.getElementById('alternative').classList.add('hidden');
   document.getElementById('alternativeChoice').classList.remove('hidden');
   document.getElementById('encoreChoice').classList.add('hidden');
