@@ -48,8 +48,29 @@ export default async function handler(req,res){
     return json(res,200,{ok:true});
    }
    if(action==='pool'){
-    if(typeof id!=='string'||!/^([1-7])-([1-9]|1[0-3])$/.test(id)||!['held','public'].includes(pool))
+    if(typeof id!=='string'||!/^([1-7])-([1-9]|1[0-3])$/.test(id)||!['held','public','organizational'].includes(pool))
      return json(res,400,{error:'INVALID_INPUT'});
+    if(pool==='organizational'){
+     const [,moved]=await db.transaction([
+      db`SELECT id FROM premiere_config WHERE id=1 FOR UPDATE`,
+      db`WITH moved AS (
+       UPDATE premiere_seats s SET pool='organizational'
+       WHERE s.id=${id} AND s.pool='held' AND s.reservation_id IS NULL
+       AND now()<'2026-11-21 19:00 Europe/Warsaw'::timestamptz
+       AND NOT EXISTS (SELECT 1 FROM premiere_organizational_tickets t
+        WHERE t.seat_id=s.id AND t.checked_in_at IS NOT NULL)
+       RETURNING s.id
+      ), ticket AS (
+       INSERT INTO premiere_organizational_tickets(id,seat_id)
+       SELECT gen_random_uuid(),id FROM moved
+       ON CONFLICT(seat_id) DO UPDATE SET id=excluded.id,revoked=false,guest_name=NULL
+       WHERE premiere_organizational_tickets.revoked
+      )
+      UPDATE premiere_config SET guest_capacity=guest_capacity+1
+      WHERE id=1 AND EXISTS(SELECT 1 FROM moved) RETURNING id`
+     ]);
+     return json(res,moved.length?200:409,moved.length?{ok:true}:{error:'ACTION_UNAVAILABLE'});
+    }
     await db`SELECT premiere_set_pool(${id},${pool})`;if(pool==='public')await advanceQueue(db);return json(res,200,{ok:true});
    }
    if(!uuid.test(String(id))||!['cancel','cancel_hold','confirm','offer'].includes(action))return json(res,400,{error:'INVALID_INPUT'});
