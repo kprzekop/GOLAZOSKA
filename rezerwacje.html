@@ -213,7 +213,7 @@ async function load(){
    document.getElementById('submit').disabled=true;
   }
   availability.textContent='Pokaz przedpremierowy 21 listopada o godz. 18:00. Po rezerwacji otrzymasz ważną wejściówkę e-mailem.';
-  if(previewStanding)availability.textContent=previewStandingAvailable>0?'Fotele są zajęte. Wolnych wejść stojących na 18:00: '+previewStandingAvailable+' z puli 10.':'Fotele i pula wejść stojących na 18:00 są zajęte.';
+  if(previewStanding)availability.textContent=previewStandingAvailable>0?'Fotele są zajęte. Wolnych wejść stojących na 18:00: '+previewStandingAvailable+'.':'Fotele i pula wejść stojących na 18:00 są zajęte.';
   form.classList.remove('hidden');
   return;
  }
