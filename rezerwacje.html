@@ -33,7 +33,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 <h1>Zobacz „Gołą Zośkę 1812”<br>o godz. 18:00</h1>
 <section id="showChoice" aria-label="Wybierz pokaz">
 <p>21 listopada 2026 · wybierz dogodną godzinę</p>
-<p><a class="primary-cta" href="/rezerwacje.html?pokaz=18">18:00 — fotel na pokaz przedpremierowy</a></p>
+<p><a class="primary-cta" href="/rezerwacje.html?pokaz=18" id="show18Link">18:00 — pokaz przedpremierowy</a></p>
 <p><a class="primary-cta" href="/rezerwacje.html?pokaz=19">19:00 — wejście bez gwarancji fotela</a></p>
 <p class="muted">Na 19:00 dostępna jest pula 20 wejść bez fotela. Po pokazie o 18:00 zapraszamy na krótkie spotkanie z twórcami.</p>
 </section>
@@ -70,7 +70,7 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
  <label class="inline"><input id="standingConsent" type="checkbox"><span id="consentText"></span></label>
  </div></div>
  </div>
- <div id="interestOptions" class="hidden"><h2>1. Wybierz miejsca</h2><p id="previewInstructions">Rząd 1 jest najbliżej ekranu.</p><div class="plan-layout"><div><div class="screen">EKRAN · POKAZ O 18:00</div><div id="previewMap" class="seatmap" aria-label="Plan sali na 18:00"></div></div><aside id="standing18" class="standing-summary" hidden><strong>Wejściówki bez fotela</strong><span aria-live="polite"></span><div class="standing-picker" hidden><label for="previewStandingCount">Liczba wejściówek</label><select id="previewStandingCount"><option value="1">1 wejściówka</option><option value="2">2 wejściówki</option></select></div></aside></div><p class="legend">Zielone: wolne · złote: Twój wybór · brązowe: zajęte · pozostałe: niedostępne.</p><p id="previewSelected" aria-live="polite">Nie wybrano miejsc.</p><button id="previewReload" type="button">Odśwież plan sali</button><div id="previewStandingChoice" class="hidden"><p>Fotele są zajęte. Możesz zarezerwować wejście na 18:00 bez gwarancji fotela.</p><label class="inline"><input id="previewStandingConsent" type="checkbox">Rozumiem, że udział w pokazie o 18:00 może odbyć się na stojąco.</label></div></div>
+ <div id="interestOptions" class="hidden"><h2 id="previewHeading">1. Sprawdź plan sali</h2><p id="previewInstructions">Rząd 1 jest najbliżej ekranu.</p><div class="plan-layout"><div><div class="screen">EKRAN · POKAZ O 18:00</div><div id="previewMap" class="seatmap" aria-label="Plan sali na 18:00"></div></div><aside id="standing18" class="standing-summary" hidden><strong>Wejściówki bez fotela</strong><span aria-live="polite"></span><div class="standing-picker" hidden><label for="previewStandingCount">Liczba wejściówek</label><select id="previewStandingCount"><option value="1">1 wejściówka</option><option value="2">2 wejściówki</option></select></div></aside></div><p class="legend">Zielone: wolne · złote: Twój wybór · brązowe: zajęte · pozostałe: niedostępne.</p><p id="previewSelected" aria-live="polite">Nie wybrano miejsc.</p><button id="previewReload" type="button">Odśwież plan sali</button><div id="previewStandingChoice" class="hidden"><p>Fotele są zajęte. Możesz zarezerwować wejście na 18:00 bez gwarancji fotela.</p><label class="inline"><input id="previewStandingConsent" type="checkbox">Rozumiem, że udział w pokazie o 18:00 może odbyć się na stojąco.</label></div></div>
  <h2 id="contactHeading">2. Podaj dane</h2>
  <label for="name">Imię i nazwisko</label><input id="name" name="name" maxlength="120" minlength="2" required autocomplete="name">
  <label for="email">Adres e-mail</label><input id="email" name="email" type="email" maxlength="254" required autocomplete="email">
@@ -194,6 +194,9 @@ async function load(){
    document.getElementById('previewSelected').hidden=!hasSeats;
    previewStanding=!hasSeats&&Number(summary?.standing_capacity)>0;
    previewStandingAvailable=Math.max(0,Number(summary?.standing_capacity||0)-Number(summary?.standing_used||0));
+   document.getElementById('show18Link').textContent=hasSeats?'18:00 — miejsca siedzące':previewStandingAvailable>0?'18:00 — wejście bez fotela':'18:00 — brak wolnych wejść';
+   document.getElementById('interestLink').textContent=hasSeats?'Wybierz fotel na 18:00 ↓':previewStandingAvailable>0?'Zarezerwuj wejście bez fotela na 18:00 ↓':'Zobacz plan sali ↓';
+   document.getElementById('previewHeading').textContent=hasSeats?'1. Wybierz fotele':previewStandingAvailable>0?'1. Wybierz wejściówki bez fotela':'Plan sali';
    showStandingSummary('standing18',previewStandingAvailable,Number(summary?.standing_capacity||0),previewStanding);
    document.getElementById('previewStandingChoice').classList.toggle('hidden',!previewStanding||previewStandingAvailable<1);
    document.getElementById('previewStandingConsent').required=previewStanding&&previewStandingAvailable>0;
@@ -207,7 +210,7 @@ async function load(){
    document.getElementById('previewMap').textContent='Plan chwilowo niedostępny. Odśwież plan sali, aby spróbować ponownie.';
    document.getElementById('submit').disabled=true;
   }
-  availability.textContent='Pokaz przedpremierowy 21 listopada o godz. 18:00. Po rezerwacji wybranych foteli otrzymasz ważną wejściówkę e-mailem.';
+  availability.textContent='Pokaz przedpremierowy 21 listopada o godz. 18:00. Po rezerwacji otrzymasz ważną wejściówkę e-mailem.';
   if(previewStanding)availability.textContent=previewStandingAvailable>0?'Fotele są zajęte. Wolnych wejść stojących na 18:00: '+previewStandingAvailable+' z puli 10.':'Fotele i pula wejść stojących na 18:00 są zajęte.';
   form.classList.remove('hidden');
   return;
