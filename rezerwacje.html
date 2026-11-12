@@ -201,7 +201,9 @@ async function load(){
    document.getElementById('previewStandingChoice').classList.toggle('hidden',!previewStanding||previewStandingAvailable<1);
    document.getElementById('previewStandingConsent').required=previewStanding&&previewStandingAvailable>0;
    const count=document.getElementById('previewStandingCount');
-   count.querySelectorAll('option').forEach(option=>option.disabled=Number(option.value)>previewStandingAvailable);
+   count.querySelectorAll('option').forEach(option=>{
+    option.hidden=option.disabled=Number(option.value)>previewStandingAvailable;
+   });
    if(Number(count.value)>previewStandingAvailable&&previewStandingAvailable>0)count.value='1';
    document.getElementById('submit').textContent=previewStanding?'Zarezerwuj wejście stojące na 18:00':'Zarezerwuj na 18:00';
    document.getElementById('submit').disabled=!hasSeats&&(!previewStanding||previewStandingAvailable<1);
@@ -285,6 +287,10 @@ form.addEventListener('submit',async e=>{
  if(!/^\+?[0-9]{9,15}$/.test(p)||p!==repeat){message.textContent='Wpisz poprawny numer telefonu identycznie w obu polach.';return;}
  if(!interestMode&&waiting.checked&&!document.getElementById('standingConsent').checked){message.textContent='Potwierdź zasady wejścia bez gwarancji fotela i listy rezerwowej.';return;}
  if((interestMode?!previewStanding:!waiting.checked)&&!selected.size){message.textContent='Wybierz przynajmniej jedno miejsce.';return;}
+ if(interestMode&&previewStanding&&Number(document.getElementById('previewStandingCount').value)>previewStandingAvailable){
+  message.textContent='Wybrana liczba wejściówek jest niedostępna. Odśwież plan sali.';
+  return;
+ }
  if(interestMode&&previewStanding&&!document.getElementById('previewStandingConsent').checked){message.textContent='Potwierdź, że wybierasz wejście na stojąco na 18:00.';return;}
  const button=document.getElementById('submit');button.disabled=true;
  try{
