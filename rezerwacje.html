@@ -34,8 +34,8 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
 <section id="showChoice" aria-label="Wybierz pokaz">
 <p>21 listopada 2026 · wybierz dogodną godzinę</p>
 <p><a class="primary-cta" href="/rezerwacje.html?pokaz=18" id="show18Link">18:00 — pokaz przedpremierowy</a></p>
-<p><a class="primary-cta" href="/rezerwacje.html?pokaz=19">19:00 — wejście bez gwarancji fotela</a></p>
-<p class="muted">Na 19:00 dostępna jest pula 20 wejść bez fotela. Po pokazie o 18:00 zapraszamy na krótkie spotkanie z twórcami.</p>
+<p><a class="primary-cta" href="/rezerwacje.html?pokaz=19">19:00 — miejsce na dostawce</a></p>
+<p class="muted">Na 19:00 dostępna jest pula 20 miejsc na dostawkach. Po pokazie o 18:00 zapraszamy na krótkie spotkanie z twórcami.</p>
 </section>
 <p><strong>Wstęp bezpłatny.</strong> Sala widowiskowa MDK, Rynek Zygmunta Augusta 9.<br>Wejście od ul. Kościelnej, II piętro.</p>
 <section aria-labelledby="additional-screenings">
@@ -55,22 +55,22 @@ button{cursor:pointer;padding:13px 24px;margin:22px 10px 0 0;color:#101716;backg
  <div id="premiereOptions"><h2>1. Wybierz wejście</h2>
  <div id="seatedChoice">
  <p id="seatInstructions">Wybierz od 1 do 2 zielonych foteli. Rząd 1 jest najbliżej ekranu.</p>
- <div class="plan-layout"><div><div class="screen">EKRAN</div><div id="seatmap" class="seatmap" role="group" aria-label="Plan sali"></div></div><aside id="standing19" class="standing-summary" hidden><strong>Wejściówki bez fotela</strong><span aria-live="polite"></span><div class="standing-picker" hidden><label for="seats">Liczba wejściówek</label><select id="seats" name="seats" form="form"><option value="1">1 wejściówka</option><option value="2">2 wejściówki</option></select></div></aside></div>
+ <div class="plan-layout"><div><div class="screen">EKRAN</div><div id="seatmap" class="seatmap" role="group" aria-label="Plan sali"></div></div><aside id="standing19" class="standing-summary" hidden><strong>Miejsca na dostawkach</strong><span aria-live="polite"></span><div class="standing-picker" hidden><label for="seats">Liczba wejściówek</label><select id="seats" name="seats" form="form"><option value="1">1 wejściówka</option><option value="2">2 wejściówki</option></select></div></aside></div>
  <p class="legend" id="seatLegend">Zielone: wolne · złote: Twój wybór · brązowe: zajęte · pozostałe: niedostępne.</p>
  <p id="selected" aria-live="polite">Nie wybrano miejsc.</p>
  </div>
  <button id="reload" type="button">Odśwież dostępność</button>
  <button id="alternative" type="button" class="hidden">Nie ma miejsc dla Twojej grupy?</button>
  <div id="alternativeChoice" class="hidden">
- <label class="inline"><input id="waiting" type="checkbox"><span id="alternativeLabel">Wybieram wejście na stojąco</span></label>
+ <label class="inline"><input id="waiting" type="checkbox"><span id="alternativeLabel">Wybieram miejsce na dostawce</span></label>
  <div id="waitCount" class="hidden">
  
  <p id="overflowAvailability" aria-live="polite"></p>
- <label class="inline hidden" id="encoreChoice"><input id="encorePriority" type="checkbox" disabled><span>Chcę otrzymać w pierwszej kolejności propozycję miejsc siedzących na kolejny seans. Zachowuję wejście na premierę bez gwarancji fotela.</span></label>
+ <label class="inline hidden" id="encoreChoice"><input id="encorePriority" type="checkbox" disabled><span>Chcę otrzymać w pierwszej kolejności propozycję miejsc w fotelach na kolejny seans. Zachowuję miejsce na dostawce na premierę.</span></label>
  <label class="inline"><input id="standingConsent" type="checkbox"><span id="consentText"></span></label>
  </div></div>
  </div>
- <div id="interestOptions" class="hidden"><h2 id="previewHeading">1. Sprawdź plan sali</h2><p id="previewInstructions">Rząd 1 jest najbliżej ekranu.</p><div class="plan-layout"><div><div class="screen">EKRAN · POKAZ O 18:00</div><div id="previewMap" class="seatmap" aria-label="Plan sali na 18:00"></div></div><aside id="standing18" class="standing-summary" hidden><strong>Wejściówki bez fotela</strong><span aria-live="polite"></span><div class="standing-picker" hidden><label for="previewStandingCount">Liczba wejściówek</label><select id="previewStandingCount"><option value="1">1 wejściówka</option><option value="2">2 wejściówki</option></select></div></aside></div><p class="legend">Zielone: wolne · złote: Twój wybór · brązowe: zajęte · pozostałe: niedostępne.</p><p id="previewSelected" aria-live="polite">Nie wybrano miejsc.</p><button id="previewReload" type="button">Odśwież plan sali</button><div id="previewStandingChoice" class="hidden"><p>Fotele są zajęte. Możesz zarezerwować wejście na 18:00 bez gwarancji fotela.</p><label class="inline"><input id="previewStandingConsent" type="checkbox">Rozumiem, że udział w pokazie o 18:00 może odbyć się na stojąco.</label></div></div>
+ <div id="interestOptions" class="hidden"><h2 id="previewHeading">1. Sprawdź plan sali</h2><p id="previewInstructions">Rząd 1 jest najbliżej ekranu.</p><div class="plan-layout"><div><div class="screen">EKRAN · POKAZ O 18:00</div><div id="previewMap" class="seatmap" aria-label="Plan sali na 18:00"></div></div><aside id="standing18" class="standing-summary" hidden><strong>Miejsca na dostawkach</strong><span aria-live="polite"></span><div class="standing-picker" hidden><label for="previewStandingCount">Liczba wejściówek</label><select id="previewStandingCount"><option value="1">1 wejściówka</option><option value="2">2 wejściówki</option></select></div></aside></div><p class="legend">Zielone: wolne · złote: Twój wybór · brązowe: zajęte · pozostałe: niedostępne.</p><p id="previewSelected" aria-live="polite">Nie wybrano miejsc.</p><button id="previewReload" type="button">Odśwież plan sali</button><div id="previewStandingChoice" class="hidden"><p>Fotele są zajęte. Możesz zarezerwować miejsce na dostawce na 18:00.</p><label class="inline"><input id="previewStandingConsent" type="checkbox">Rozumiem, że wybieram miejsca na dostawkach na pokaz o 18:00.</label></div></div>
  <h2 id="contactHeading">2. Podaj dane</h2>
  <label for="name">Imię i nazwisko</label><input id="name" name="name" maxlength="120" minlength="2" required autocomplete="name">
  <label for="email">Adres e-mail</label><input id="email" name="email" type="email" maxlength="254" required autocomplete="email">
@@ -130,16 +130,16 @@ function updateVariant(){
  const isStanding=Number(document.getElementById('seats').value)<=standingAvailable;
  document.getElementById('encoreChoice').classList.toggle('hidden',!waiting.checked||!isStanding);
  document.getElementById('encorePriority').disabled=!waiting.checked||!isStanding;
- document.getElementById('alternativeLabel').textContent=standingAvailable>0?'Wybieram wejście na stojąco':'Zapisuję się na listę rezerwową';
- document.getElementById('overflowAvailability').textContent=isStanding?'Wejście na pokaz bez gwarancji fotela. Jeśli zwolnią się miejsca siedzące, wyślemy propozycję.':'Lista rezerwowa nie uprawnia do wejścia. Przyjdź dopiero po otrzymaniu i przyjęciu propozycji. Całą grupę zapisujemy razem.';
- document.getElementById('consentText').textContent=isStanding?'Rozumiem, że mogę uczestniczyć na stojąco.':'Rozumiem, że zapis na listę rezerwową nie gwarantuje wejścia.';
- document.getElementById('submit').textContent=waiting.checked?(isStanding?'Zarezerwuj wejście na stojąco':'Zapisz na listę rezerwową'):'Zarezerwuj miejsca';
+ document.getElementById('alternativeLabel').textContent=standingAvailable>0?'Wybieram miejsce na dostawce':'Zapisuję się na listę rezerwową';
+ document.getElementById('overflowAvailability').textContent=isStanding?'Miejsce na dostawce na pokaz. Jeśli zwolnią się miejsca w fotelach, wyślemy propozycję.':'Lista rezerwowa nie uprawnia do wejścia. Przyjdź dopiero po otrzymaniu i przyjęciu propozycji. Całą grupę zapisujemy razem.';
+ document.getElementById('consentText').textContent=isStanding?'Rozumiem, że wybieram miejsce na dostawce.':'Rozumiem, że zapis na listę rezerwową nie gwarantuje wejścia.';
+ document.getElementById('submit').textContent=waiting.checked?(isStanding?'Zarezerwuj miejsce na dostawce':'Zapisz na listę rezerwową'):'Zarezerwuj miejsca';
  if(standingOnly){
   document.getElementById('encoreChoice').classList.add('hidden');
   document.getElementById('encorePriority').disabled=true;
-  document.getElementById('alternativeLabel').textContent='Wybieram wejście na 19:00 bez gwarancji fotela';
-  document.getElementById('overflowAvailability').textContent='Wejście na premierę o 19:00. Udział może odbyć się na stojąco.';
-  document.getElementById('submit').textContent='Zarezerwuj wejście bez fotela na 19:00';
+  document.getElementById('alternativeLabel').textContent='Wybieram miejsce na dostawce na 19:00';
+  document.getElementById('overflowAvailability').textContent='Wejście na premierę o 19:00. Miejsca są na dostawkach.';
+  document.getElementById('submit').textContent='Zarezerwuj miejsce na dostawce na 19:00';
  }
  document.getElementById('standingConsent').required=waiting.checked;
 }
@@ -194,9 +194,9 @@ async function load(){
    document.getElementById('previewSelected').hidden=!hasSeats;
    previewStanding=!hasSeats&&Number(summary?.standing_capacity)>0;
    previewStandingAvailable=Math.max(0,Number(summary?.standing_capacity||0)-Number(summary?.standing_used||0));
-   document.getElementById('show18Link').textContent=hasSeats?'18:00 — miejsca siedzące':previewStandingAvailable>0?'18:00 — wejście bez fotela':'18:00 — brak wolnych wejść';
-   document.getElementById('interestLink').textContent=hasSeats?'Wybierz fotel na 18:00 ↓':previewStandingAvailable>0?'Zarezerwuj wejście bez fotela na 18:00 ↓':'Zobacz plan sali ↓';
-   document.getElementById('previewHeading').textContent=hasSeats?'1. Wybierz fotele':previewStandingAvailable>0?'1. Wybierz wejściówki bez fotela':'Plan sali';
+   document.getElementById('show18Link').textContent=hasSeats?'18:00 — miejsca siedzące':previewStandingAvailable>0?'18:00 — miejsce na dostawce':'18:00 — brak wolnych wejść';
+   document.getElementById('interestLink').textContent=hasSeats?'Wybierz fotel na 18:00 ↓':previewStandingAvailable>0?'Zarezerwuj miejsce na dostawce na 18:00 ↓':'Zobacz plan sali ↓';
+   document.getElementById('previewHeading').textContent=hasSeats?'1. Wybierz fotele':previewStandingAvailable>0?'1. Wybierz miejsca na dostawkach':'Plan sali';
    showStandingSummary('standing18',previewStandingAvailable,Number(summary?.standing_capacity||0),previewStanding);
    document.getElementById('previewStandingChoice').classList.toggle('hidden',!previewStanding||previewStandingAvailable<1);
    document.getElementById('previewStandingConsent').required=previewStanding&&previewStandingAvailable>0;
@@ -205,7 +205,7 @@ async function load(){
     option.hidden=option.disabled=Number(option.value)>previewStandingAvailable;
    });
    if(Number(count.value)>previewStandingAvailable&&previewStandingAvailable>0)count.value='1';
-   document.getElementById('submit').textContent=previewStanding?'Zarezerwuj wejście stojące na 18:00':'Zarezerwuj na 18:00';
+   document.getElementById('submit').textContent=previewStanding?'Zarezerwuj miejsce na dostawce na 18:00':'Zarezerwuj na 18:00';
    document.getElementById('submit').disabled=!hasSeats&&(!previewStanding||previewStandingAvailable<1);
   }catch{
    document.getElementById('standing18').hidden=true;
@@ -213,7 +213,7 @@ async function load(){
    document.getElementById('submit').disabled=true;
   }
   availability.textContent='Pokaz przedpremierowy 21 listopada o godz. 18:00. Po rezerwacji otrzymasz ważną wejściówkę e-mailem.';
-  if(previewStanding)availability.textContent=previewStandingAvailable>0?'Fotele są zajęte. Wolnych wejść stojących na 18:00: '+previewStandingAvailable+'.':'Fotele i pula wejść stojących na 18:00 są zajęte.';
+  if(previewStanding)availability.textContent=previewStandingAvailable>0?'Fotele są zajęte. Wolnych miejsc na dostawkach na 18:00: '+previewStandingAvailable+'.':'Fotele i pula miejsc na dostawkach na 18:00 są zajęte.';
   form.classList.remove('hidden');
   return;
  }
@@ -233,7 +233,7 @@ async function load(){
   document.getElementById('showChoice').hidden=true;
   document.getElementById('rules').hidden=true;
   document.getElementById('check18').hidden=false;
-  document.querySelector('h1').textContent='Premiera o 19:00 — wejście bez fotela';
+  document.querySelector('h1').textContent='Premiera o 19:00 — miejsce na dostawce';
   document.querySelector('.eyebrow').textContent='Premiera · 21 listopada 2026 · godz. 19:00';
   document.querySelector('[aria-labelledby="additional-screenings"]').hidden=true;
   document.getElementById('interestLink').textContent='Zarezerwuj wejście na 19:00 ↓';
@@ -256,7 +256,7 @@ async function load(){
   if(Number(count.value)>standingAvailable&&standingAvailable>0)count.value='1';
   updateVariant();
   form.classList.toggle('hidden',standingAvailable<1);
-  availability.textContent=standingAvailable>0?'Wolne wejścia bez fotela na 19:00: '+standingAvailable+' z puli 20.':'Pula 20 wejść bez fotela jest zajęta. Możesz wybrać pokaz o 18:00.';
+  availability.textContent=standingAvailable>0?'Wolne miejsca na dostawkach na 19:00: '+standingAvailable+' z puli 20.':'Pula 20 miejsc na dostawkach jest zajęta. Możesz wybrać pokaz o 18:00.';
   showChallenge(d.siteKey);
   return;
  }
@@ -267,7 +267,7 @@ async function load(){
  document.getElementById('alternative').classList.toggle('hidden',!hasSeats);
  if(!hasSeats){document.getElementById('alternativeChoice').classList.remove('hidden');waiting.checked=true;setWaiting();}
  updateRules();updateVariant();render();form.classList.remove('hidden');
- availability.textContent=hasSeats?'':standingAvailable>0?'Fotele są zajęte. Możesz zarezerwować wejście na stojąco.':'Wszystkie wejścia są zajęte. Możesz zapisać się na listę rezerwową.';
+ availability.textContent=hasSeats?'':standingAvailable>0?'Fotele są zajęte. Możesz zarezerwować miejsce na dostawce.':'Wszystkie wejścia są zajęte. Możesz zapisać się na listę rezerwową.';
  showChallenge(d.siteKey);
 }
 function showChallenge(siteKey){
@@ -285,25 +285,25 @@ form.addEventListener('submit',async e=>{
  e.preventDefault();message.textContent='';
  const p=normalize(document.getElementById('phone').value),repeat=normalize(document.getElementById('phoneRepeat').value);
  if(!/^\+?[0-9]{9,15}$/.test(p)||p!==repeat){message.textContent='Wpisz poprawny numer telefonu identycznie w obu polach.';return;}
- if(!interestMode&&waiting.checked&&!document.getElementById('standingConsent').checked){message.textContent='Potwierdź zasady wejścia bez gwarancji fotela i listy rezerwowej.';return;}
+ if(!interestMode&&waiting.checked&&!document.getElementById('standingConsent').checked){message.textContent='Potwierdź zasady miejsc na dostawkach i listy rezerwowej.';return;}
  if((interestMode?!previewStanding:!waiting.checked)&&!selected.size){message.textContent='Wybierz przynajmniej jedno miejsce.';return;}
  if(interestMode&&previewStanding&&Number(document.getElementById('previewStandingCount').value)>previewStandingAvailable){
   message.textContent='Wybrana liczba wejściówek jest niedostępna. Odśwież plan sali.';
   return;
  }
- if(interestMode&&previewStanding&&!document.getElementById('previewStandingConsent').checked){message.textContent='Potwierdź, że wybierasz wejście na stojąco na 18:00.';return;}
+ if(interestMode&&previewStanding&&!document.getElementById('previewStandingConsent').checked){message.textContent='Potwierdź, że wybierasz miejsce na dostawce na 18:00.';return;}
  const button=document.getElementById('submit');button.disabled=true;
  try{
   const body={...Object.fromEntries(new FormData(form)),seatIds:[...selected],waiting:waiting.checked,encorePriority:!document.getElementById('encorePriority').disabled&&document.getElementById('encorePriority').checked,acceptStanding:document.getElementById('standingConsent').checked};
   if(standingOnly)Object.assign(body,{standingOnly:true,waiting:true,seatIds:[]});
   if(interestMode)Object.assign(body,{screeningInterest:true,previewStanding,seatIds:previewStanding?[]:[...selected],seats:previewStanding?Number(document.getElementById('previewStandingCount').value):selected.size,acceptStanding:previewStanding&&document.getElementById('previewStandingConsent').checked});
   const r=await fetch('/api/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();
-  const errors={SEATED_AVAILABLE:'Zwolniły się fotele. Wybierz miejsca na odświeżonym planie.',STANDING_UNAVAILABLE:interestMode?'Pula wejść stojących na 18:00 jest już zajęta.':'Wybrana liczba wejść bez fotela na 19:00 jest już niedostępna. Odśwież stronę lub wybierz pokaz o 18:00.',DUPLICATE:'Ten e-mail ma już aktywne zgłoszenie. Sprawdź skrzynkę.',SEATS_UNAVAILABLE:'Ktoś właśnie zarezerwował wybrane miejsca. Wybierz inne na odświeżonym planie.',CHALLENGE:'Potwierdź zabezpieczenie formularza.',INVALID_INPUT:'Sprawdź dane i zgodność obu numerów telefonu.',MAIL_UNAVAILABLE:'Nie udało się wysłać wiadomości. Zgłoszenie zostało anulowane; spróbuj ponownie.'};
+  const errors={SEATED_AVAILABLE:'Zwolniły się fotele. Wybierz miejsca na odświeżonym planie.',STANDING_UNAVAILABLE:interestMode?'Pula miejsc na dostawkach na 18:00 jest już zajęta.':'Wybrana liczba miejsc na dostawkach na 19:00 jest już niedostępna. Odśwież stronę lub wybierz pokaz o 18:00.',DUPLICATE:'Ten e-mail ma już aktywne zgłoszenie. Sprawdź skrzynkę.',SEATS_UNAVAILABLE:'Ktoś właśnie zarezerwował wybrane miejsca. Wybierz inne na odświeżonym planie.',CHALLENGE:'Potwierdź zabezpieczenie formularza.',INVALID_INPUT:'Sprawdź dane i zgodność obu numerów telefonu.',MAIL_UNAVAILABLE:'Nie udało się wysłać wiadomości. Zgłoszenie zostało anulowane; spróbuj ponownie.'};
   if(!r.ok){if(['SEATS_UNAVAILABLE','SEATED_AVAILABLE','STANDING_UNAVAILABLE'].includes(d.error))await load();throw Error(errors[d.error]||'Nie udało się przyjąć zgłoszenia. Spróbuj później.');}
   form.classList.add('hidden');availability.textContent='';
   if(d.admission==='interest'){message.textContent='Zapis przyjęty. Po przydzieleniu miejsc otrzymasz wejściówkę e-mailem.';return;}
   if(d.ticketUrl){const ticket=document.createElement('a');ticket.href=d.ticketUrl;ticket.textContent='Pokaż ważne wejściówki';message.append('Rezerwacja gotowa. ',ticket);return;}
-  message.textContent=d.admission==='standing'?'Wejściówka jest ważna, a udział może odbyć się na stojąco.':'Jesteś na liście rezerwowej. Potwierdź adres e-mail przez link w wiadomości.';
+  message.textContent=d.admission==='standing'?'Wejściówka jest ważna, a miejsca są na dostawkach.':'Jesteś na liście rezerwowej. Potwierdź adres e-mail przez link w wiadomości.';
 
  }catch(err){message.textContent=err.message;window.turnstile?.reset(widget);}
  finally{button.disabled=interestMode&&previewStanding&&previewStandingAvailable<1;}

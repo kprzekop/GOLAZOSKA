@@ -16,7 +16,7 @@ document.getElementById('print').onclick=()=>window.print();
   for(const t of data.tickets){
    const section=document.createElement('section');section.className='ticket';
    const title=document.createElement('h2');title.textContent='Wejściówka '+t.person;
-   const label=document.createElement('p');label.textContent=t.seat?'Rząd '+t.seat.split('-')[0]+', miejsce '+t.seat.split('-')[1]:'Wejście na stojąco / bez gwarancji fotela';
+   const label=document.createElement('p');label.textContent=t.seat?'Rząd '+t.seat.split('-')[0]+', miejsce '+t.seat.split('-')[1]:'Miejsce na dostawce';
    const img=document.createElement('img');img.src='/api/tickets?ticket='+encodeURIComponent(t.id);img.alt='Kod QR dla osoby '+t.person;img.width=360;img.height=360;
    const number=document.createElement('p');number.className='number';number.textContent='Numer: '+t.id;
    section.append(title,label,img,number);
