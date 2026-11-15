@@ -116,7 +116,14 @@
     @media(max-width:760px){.header{padding:22px}.brand{font-size:22px}.nav{gap:16px;font-size:10px}.nav a:nth-child(2){display:none}.hero{min-height:720px;min-height:100svh}.hero-inner{padding:140px 26px 110px}.hero h1{font-size:clamp(76px,16vw,125px)}.hero-footer span:last-child{display:none}.intro,.story-grid{grid-template-columns:1fr}.story-grid .art{order:2;max-width:500px}.materials-header{display:block}.gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.cards{grid-template-columns:1fr}.card{min-height:210px}.section{padding:80px 0}footer{flex-direction:column;align-items:flex-start}}
     @media(max-width:480px){.gallery{grid-template-columns:1fr}.credits-card .cast-list{grid-template-columns:1fr}.hero h1{font-size:clamp(70px,17vw,92px)}.lightbox{padding:12px}.lightbox img{max-height:calc(100dvh - 110px)}.lightbox .previous,.lightbox .next{width:34px;height:48px}.lightbox .close{right:12px}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.button,.gallery a,.gallery img,.gallery a:after{transition:none}}
-  </style>
+  
+.vod-banner{width:min(1180px,calc(100% - 44px));margin:36px auto 0;padding:28px 32px;border:1px solid #c8a77b;border-radius:6px;background:linear-gradient(120deg,#1d2924,#101716);display:flex;align-items:center;justify-content:space-between;gap:28px;color:#f4f1e9}
+.vod-banner-copy{min-width:0}.vod-banner .vod-status{display:inline-block;margin:0 0 12px;color:#c8a77b;font-size:13px;line-height:1.4;letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+.vod-banner h2{font-family:inherit;font-size:clamp(25px,3vw,38px);font-weight:500;line-height:1.25;margin:0 0 12px;letter-spacing:0}
+.vod-banner p{font-size:16px;line-height:1.6;margin:0;color:#c6cec8}.vod-banner .vod-cost-note{max-width:720px;font-size:13px;margin-top:10px;color:#aebbb2}
+.vod-banner .vod-cta{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:16px 24px;border-radius:4px;background:#c8a77b;color:#101716;font-size:16px;font-weight:600;text-decoration:none;text-align:center;min-height:52px}.vod-banner .vod-cta:hover{filter:brightness(1.12)}.vod-banner .vod-cta:focus-visible{outline:3px solid #fff;outline-offset:5px}
+@media(max-width:700px){.vod-banner{padding:24px;gap:20px;flex-direction:column;align-items:stretch}.vod-banner .vod-cta{width:100%}}
+</style>
 <link rel="icon" type="image/webp" sizes="640x640" href="/favicon.webp?v=20261027">
 </head>
 <body>
@@ -130,6 +137,8 @@
       <div class="hero-inner"><p class="eyebrow">Film fabularny inspirowany legendą</p><h1 id="tytul">Goła<br>Zośka <span>1812</span></h1><p class="hero-copy">Film Krzysztofa Przekopa. Wśród lasów i jezior dawna opowieść powraca z mroku.</p><div class="actions"><a class="button" href="#film">Poznaj film</a><a class="button secondary" href="#premiera">Premiera</a></div></div>
       <div class="hero-footer"><span>Augustów · Polska</span><span>Przewiń, aby odkryć historię ↓</span></div>
     </section>
+<section class="vod-banner" aria-labelledby="vod-info"><div class="vod-banner-copy"><p class="vod-status">Sprzedaż wkrótce</p><h2 id="vod-info">Goła Zośka 1812 — obejrzyj online</h2><p>W serwisie Miłosna · <strong>19,90 zł brutto</strong> · 48 godzin dostępu<br>Start sprzedaży: 21 listopada 2026 po godz. 19:00.</p><p class="vod-cost-note">Opłata za dostęp online pokrywa koszty utrzymania serwerów i infrastruktury technicznej potrzebnej do oglądania filmu.</p></div><a class="vod-cta" href="https://www.milosna.com/zakup.html?film=gola-zoska" aria-label="Goła Zośka 1812 w Miłosnej — sprzedaż wkrótce">Przejdź do Miłosnej ↗</a></section>
+
     <section class="section" id="film"><div class="wrap intro"><div><p class="section-label">Film</p><h2>Legenda,<br>która nie milknie.</h2></div><div><p class="lead">Jezioro. Las. Ognisko. Noc, po której nic nie pozostaje takie samo.</p><p class="body-copy">„Goła Zośka 1812” to film fabularny Krzysztofa Przekopa inspirowany lokalną legendą. W jej świecie historia spotyka pamięć miejsca, a cisza augustowskich lasów skrywa więcej, niż można dostrzec za dnia.</p></div></div></section>
     <div class="interlude" aria-label="Motyw filmu"><div><blockquote>Nie każda historia<br>kończy się o świcie.</blockquote><small>Goła Zośka 1812</small></div></div>
     <section class="section" id="legenda">
@@ -161,7 +170,7 @@
     <button class="next" type="button" aria-label="Następne zdjęcie">›</button>
     <p class="lightbox-caption" id="lightbox-caption"></p>
   </dialog>
-  <section aria-labelledby="vod-info" style="max-width:960px;margin:2rem auto;padding:0 1.25rem"><h2 id="vod-info">Seans online w Miłosnej</h2><p>19,90 zł za 48 godzin dostępu · po premierze. Opłata za dostęp online pokrywa koszty utrzymania serwerów i infrastruktury technicznej potrzebnej do oglądania filmu.</p><p><a href="https://www.milosna.com/#filmy">Zobacz w katalogu Miłosnej</a></p></section>
+  
 <footer><span>© 2026 Goła Zośka 1812</span><a href="#poczatek">Wróć na początek ↑</a></footer>
   <script>
     const photos = [...document.querySelectorAll('[data-photo]')];
