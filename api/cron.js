@@ -1,7 +1,6 @@
 import {processTransferFollowups} from '../lib/transfer-followup.js';
 import {sendAdditionalScreeningOffers} from '../lib/additional-screenings.js';
 import {deliverPendingTickets} from '../lib/tickets.js';
-import {sendPreviewReminders} from '../lib/preview-reminders.js';
 import {advanceQueue} from '../lib/queue.js';
 import {applySeatPolicy} from '../lib/seat-policy.js';
 import {json,sql,tokenValid} from '../lib/shared.js';
@@ -24,7 +23,6 @@ export default async function handler(req,res){
   if(now>=new Date(EVENT_AT))return json(res,200,{done:true,additional,followup});
   const queue=await advanceQueue(db);promoted=queue.promoted;sent=queue.sent;failed=queue.failed;
   const tickets=await deliverPendingTickets(db);sent+=tickets.sent;failed+=tickets.failed;
-  const previewReminders=await sendPreviewReminders(db,now);
-  return json(res,200,{promoted,sent,failed,additional,followup,previewReminders});
+  return json(res,200,{promoted,sent,failed,additional,followup});
  }catch{return json(res,503,{error:'UNAVAILABLE'});}
 }
