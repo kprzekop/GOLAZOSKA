@@ -1,4 +1,5 @@
 import {sendPreviewReminders} from '../lib/preview-reminders.js';
+import {sendPremiereReminders} from '../lib/premiere-reminders.js';
 import {json,sql,tokenValid} from '../lib/shared.js';
 
 export default async function handler(req,res){
@@ -7,9 +8,19 @@ export default async function handler(req,res){
   return json(res,401,{error:'UNAUTHORIZED'});
  if(!process.env.DATABASE_URL||!process.env.RESEND_API_KEY||!process.env.MAIL_FROM)
   return json(res,503,{error:'UNAVAILABLE'});
- try{return json(res,200,{previewReminders:await sendPreviewReminders(sql())});}
- catch(error){
-  console.error('Goła Zośka 18:00 reminder failed',error?.code??error?.name??'UNKNOWN');
-  return json(res,503,{error:'UNAVAILABLE'});
+ const db=sql(),now=new Date();
+ const result={};
+ let failed=false;
+ for(const [name,showtime,send] of [
+  ['premiereReminders','19:00',sendPremiereReminders],
+  ['previewReminders','18:00',sendPreviewReminders]
+ ]){
+  try{result[name]=await send(db,now);}
+  catch(error){
+   console.error('Goła Zośka '+showtime+' reminder failed',error?.code??error?.name??'UNKNOWN');
+   result[name]={error:'UNAVAILABLE'};
+   failed=true;
+  }
  }
+ return json(res,failed?503:200,result);
 }

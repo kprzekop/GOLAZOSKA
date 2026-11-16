@@ -22,5 +22,10 @@
       "requestMethod": "GET",
       "timezone": "Europe/Warsaw"
     }
+  },
+  "functions": {
+    "api/preview-reminders*.js": {
+      "includeFiles": "images/plakat-gola-zoska-mail.jpg"
+    }
   }
 }
