@@ -7,14 +7,20 @@
     {
       "path": "/api/transfer-deadline",
       "schedule": "0 23 12 11 *"
-    },
-    {
-      "path": "/api/preview-reminders",
-      "schedule": "0 10 16,19,20 11 *"
-    },
-    {
-      "path": "/api/preview-reminders-saturday",
-      "schedule": "0 16 21 11 *"
     }
-  ]
+  ],
+  "schedules": {
+    "gola-zoska-preview-morning": {
+      "schedule": "0 11 16,19,20 11 *",
+      "path": "/api/preview-reminders",
+      "requestMethod": "GET",
+      "timezone": "Europe/Warsaw"
+    },
+    "gola-zoska-preview-saturday": {
+      "schedule": "0 17 21 11 *",
+      "path": "/api/preview-reminders-saturday",
+      "requestMethod": "GET",
+      "timezone": "Europe/Warsaw"
+    }
+  }
 }
