@@ -1,5 +1,6 @@
-import {sendPreviewReminders} from '../lib/preview-reminders.js';
+import {canSendPreviewReminder,sendPreviewReminders} from '../lib/preview-reminders.js';
 import {sendPremiereReminders} from '../lib/premiere-reminders.js';
+import {sendTechnicalReminders,technicalReminderWindow} from '../lib/technical-reminders.js';
 import {json,sql,tokenValid} from '../lib/shared.js';
 
 export default async function handler(req,res){
@@ -8,9 +9,19 @@ export default async function handler(req,res){
   return json(res,401,{error:'UNAUTHORIZED'});
  if(!process.env.DATABASE_URL||!process.env.RESEND_API_KEY||!process.env.MAIL_FROM)
   return json(res,503,{error:'UNAVAILABLE'});
- const db=sql(),now=new Date();
+ const now=new Date();
  const result={};
  let failed=false;
+ if(technicalReminderWindow(now)){
+  try{result.technicalReminders=await sendTechnicalReminders(now);}
+  catch(error){
+   console.error('Goła Zośka technical reminder failed',error?.message??'UNKNOWN');
+   result.technicalReminders={error:'UNAVAILABLE'};
+   failed=true;
+  }
+ }
+ if(!canSendPreviewReminder(now))return json(res,failed?503:200,result);
+ const db=sql();
  for(const [name,showtime,send] of [
   ['premiereReminders','19:00',sendPremiereReminders],
   ['previewReminders','18:00',sendPreviewReminders]

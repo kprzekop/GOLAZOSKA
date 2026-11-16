@@ -21,6 +21,12 @@
       "path": "/api/preview-reminders-saturday",
       "requestMethod": "GET",
       "timezone": "Europe/Warsaw"
+    },
+    "gola-zoska-technical-test": {
+      "schedule": "25 10 16 11 *",
+      "path": "/api/preview-reminders",
+      "requestMethod": "GET",
+      "timezone": "Europe/Warsaw"
     }
   },
   "functions": {
