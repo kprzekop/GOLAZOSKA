@@ -2,10 +2,37 @@ import {applySeatPolicy} from '../lib/seat-policy.js';
 import {json,sql,isAdmin,tokenValid} from '../lib/shared.js';
 import {uuid} from '../lib/tickets.js';
 export const isStaff=req=>isAdmin(req)||tokenValid((req.headers.authorization||'').replace(/^Bearer /i,''),process.env.CHECKIN_TOKEN);
+
+async function findPreviewBookings(db,phone){
+ const digits=phone.replace(/\D/g,'');
+ const number=digits.length>9&&digits.startsWith('00')?digits.slice(2):digits;
+ const local=number.length===11&&number.startsWith('48')?number.slice(2):number;
+ const variants=local.length===9?[local,'48'+local,'0048'+local]:[number,'00'+number];
+ return db`SELECT b.name,COALESCE((to_jsonb(b)->>'standing_seats')::int,0) AS standing_seats,places.seats
+  FROM additional_screening_bookings b
+  LEFT JOIN additional_screening_interest i ON i.id=b.source_id
+  LEFT JOIN premiere_reservations r ON r.id=b.source_id
+  LEFT JOIN premiere_reservations transfer ON transfer.id=b.transfer_source_id
+  CROSS JOIN LATERAL (
+   SELECT ARRAY(SELECT s.row_no||'-'||s.seat_no FROM additional_screening_seats s
+    WHERE s.screening_id=b.screening_id AND s.booking_id=b.id ORDER BY s.row_no,s.seat_no) AS seats
+  ) places
+  WHERE b.screening_id=1 AND b.status='confirmed'
+   AND (cardinality(places.seats)>0 OR COALESCE((to_jsonb(b)->>'standing_seats')::int,0)>0)
+   AND regexp_replace(COALESCE(i.phone,r.phone,transfer.phone),'[^0-9]','','g')=ANY(${variants}::text[])
+  ORDER BY b.name,b.id`;
+}
+
 export default async function handler(req,res){
  if(!isStaff(req))return json(res,401,{error:'UNAUTHORIZED'});
  if(!['GET','POST'].includes(req.method))return json(res,405,{error:'METHOD'});
  try{
+  if(req.method==='POST'&&req.body?.action==='preview-phone'){
+   const phone=String(req.body.phone??'').trim();
+   if(phone.length>32||!/^\+?[\d\s().-]+$/.test(phone)||!/^(?:00)?\d{9,15}$/.test(phone.replace(/\D/g,'')))
+    return json(res,400,{error:'INVALID_PHONE'});
+   return json(res,200,{bookings:await findPreviewBookings(sql(),phone)});
+  }
   const db=sql();await applySeatPolicy(db);await db`SELECT premiere_expire()`;
   if(req.method==='GET'){
    const q=String(req.query.q||'').trim();
