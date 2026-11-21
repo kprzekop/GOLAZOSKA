@@ -8,7 +8,8 @@ async function findPreviewBookings(db,phone){
  const number=digits.length>9&&digits.startsWith('00')?digits.slice(2):digits;
  const local=number.length===11&&number.startsWith('48')?number.slice(2):number;
  const variants=local.length===9?[local,'48'+local,'0048'+local]:[number,'00'+number];
- return db`SELECT b.name,COALESCE((to_jsonb(b)->>'standing_seats')::int,0) AS standing_seats,places.seats
+ return db`SELECT substring(b.name from '[^[:space:]]+') AS first_name,
+  COALESCE((to_jsonb(b)->>'standing_seats')::int,0) AS standing_seats,places.seats
   FROM additional_screening_bookings b
   LEFT JOIN additional_screening_interest i ON i.id=b.source_id
   LEFT JOIN premiere_reservations r ON r.id=b.source_id

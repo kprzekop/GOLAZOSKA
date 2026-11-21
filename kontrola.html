@@ -54,7 +54,7 @@ $('previewSearch').onsubmit=async e=>{
   for(const booking of bookings){
    const guest=document.createElement('p');
    const name=document.createElement('strong');
-   name.textContent=booking.name;
+   name.textContent=booking.first_name;
    const seats=booking.seats.map(seat=>{
     const [row,number]=seat.split('-');
     return 'rząd '+row+', miejsce '+number;

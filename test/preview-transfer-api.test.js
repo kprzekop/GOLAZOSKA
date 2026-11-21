@@ -25,19 +25,19 @@ test('18:00 staff phone lookup finds direct and transferred bookings with active
   for(const file of ['schema.sql','migrate-admissions.sql','migrate-tickets.sql'])await db.exec(await readFile(new URL('../db/'+file,import.meta.url),'utf8'));
   await prepareSelectedPreview(tag);
   await db.exec("UPDATE additional_screenings SET starts_at=now()+interval '7 days',invitations_open=true WHERE id=1");
-  const {id:source}=(await db.query("INSERT INTO premiere_reservations(name,email,phone,seats,status,admission,verified_at) VALUES('Transfer','transfer@example.test','+48600123456',1,'confirmed','standing',now()) RETURNING id")).rows[0];
-  const {id:direct}=(await db.query("SELECT preview_reserve_selected('Direct','direct@example.test','600123456',ARRAY['7-7']) AS id")).rows[0];
+  const {id:source}=(await db.query("INSERT INTO premiere_reservations(name,email,phone,seats,status,admission,verified_at) VALUES('Bartek Przeniesiony','transfer@example.test','+48600123456',1,'confirmed','standing',now()) RETURNING id")).rows[0];
+  const {id:direct}=(await db.query("SELECT preview_reserve_selected('Anna Bezpośrednia','direct@example.test','600123456',ARRAY['7-7']) AS id")).rows[0];
   const {id:transfer}=(await db.query('SELECT additional_screening_offer(1) AS id')).rows[0];
   assert.equal((await phoneLookup('600123456','')).code,401);
   assert.equal((await phoneLookup('123456')).code,400);
-  assert.deepEqual((await phoneLookup('0048 600 123 456')).body.bookings,[{name:'Direct',standing_seats:0,seats:['7-7']}]);
+  assert.deepEqual((await phoneLookup('0048 600 123 456')).body.bookings,[{first_name:'Anna',standing_seats:0,seats:['7-7']}]);
   await db.query('SELECT preview_choose_and_transfer($1,ARRAY[\'7-8\'])',[transfer]);
   assert.equal((await db.query('SELECT status FROM premiere_reservations WHERE id=$1',[source])).rows[0].status,'cancelled');
-  assert.deepEqual((await phoneLookup('600-123-456')).body.bookings,[{name:'Direct',standing_seats:0,seats:['7-7']},{name:'Transfer',standing_seats:0,seats:['7-8']}]);
+  assert.deepEqual((await phoneLookup('600-123-456')).body.bookings,[{first_name:'Anna',standing_seats:0,seats:['7-7']},{first_name:'Bartek',standing_seats:0,seats:['7-8']}]);
   await db.query("UPDATE additional_screening_bookings SET status='cancelled' WHERE id=$1",[direct]);
   await db.query('UPDATE additional_screening_seats SET booking_id=NULL WHERE booking_id=$1',[transfer]);
   await db.query('UPDATE additional_screening_bookings SET standing_seats=2 WHERE id=$1',[transfer]);
-  assert.deepEqual((await phoneLookup('+48 (600) 123 456')).body.bookings,[{name:'Transfer',standing_seats:2,seats:[]}]);
+  assert.deepEqual((await phoneLookup('+48 (600) 123 456')).body.bookings,[{first_name:'Bartek',standing_seats:2,seats:[]}]);
  }finally{delete process.env.CHECKIN_TOKEN;await db.close();}
 });
 test('API, migration and durable emails: one proposal, no GET side effect, atomic consent, retry failed confirmation',async()=>{
